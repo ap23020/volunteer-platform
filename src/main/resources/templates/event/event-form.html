@@ -3,13 +3,20 @@
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{page_layout/layout}">
 <head>
-    <title>Create Event</title>
+    <title>Event Form</title>
 </head>
 <body>
 <div layout:fragment="main-content" class="d-flex flex-column h-100">
     <div class="container py-5">
-        <h2 class="mb-4">Create New Event</h2>
-        <form th:action="@{/event/new}" th:object="${event}" method="post">
+        <h2 class="mb-4" th:text="${event.id == null ? 'Create New Event' : 'Edit Event'}">Event Form</h2>
+
+        <!-- Φόρμα που αλλάζει action ανάλογα αν είναι δημιουργία ή επεξεργασία -->
+        <form th:action="${event.id == null} ? @{/event/new} : @{/event/edit/{id}(id=${event.id})}"
+              th:object="${event}" method="post">
+
+            <!-- Hidden field για id όταν κάνουμε edit -->
+            <input type="hidden" th:field="*{id}" th:if="${event.id != null}">
+
             <div class="mb-3">
                 <label class="form-label">Title</label>
                 <input type="text" class="form-control" th:field="*{title}" required>
@@ -21,7 +28,8 @@
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Date & Time</label>
-                    <input type="datetime-local" id="dateTimeInput" class="form-control" th:field="*{dateTime}" required>                </div>
+                    <input type="datetime-local" id="dateTimeInput" class="form-control" th:field="*{dateTime}" required>
+                </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Duration (hours)</label>
                     <input type="number" class="form-control" th:field="*{duration}" min="1">
@@ -50,26 +58,25 @@
                             th:text="${org.name}"></option>
                 </select>
             </div>
-            <div class="d-flex gap-2">
-                <button type="submit" class="btn btn-primary">Create Event</button>
-                <a th:href="@{/event/list}" class="btn btn-secondary">Cancel</a>
-            </div>
+            <button type="submit" class="btn btn-primary"
+                    th:text="${event.id == null ? 'Create Event' : 'Update Event'}">Create Event</button>
+            <a th:href="@{/event/list}" class="btn btn-secondary">Cancel</a>
         </form>
-
-        <script>
-            (function() {
-                const input = document.getElementById('dateTimeInput');
-                if (input) {
-                    const now = new Date();
-                    // Μετατροπή σε τοπική ώρα χωρίς timezone offset
-                    const localNow = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
-                        .toISOString()
-                        .slice(0, 16);
-                    input.setAttribute('min', localNow);
-                }
-            })();
-        </script>
     </div>
 </div>
+
+<script>
+    // Περιορισμός ημερομηνίας ώστε να μην επιλέγεται προγενέστερη
+    (function() {
+        const input = document.getElementById('dateTimeInput');
+        if (input) {
+            const now = new Date();
+            const localNow = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+                .toISOString()
+                .slice(0, 16);
+            input.setAttribute('min', localNow);
+        }
+    })();
+</script>
 </body>
 </html>

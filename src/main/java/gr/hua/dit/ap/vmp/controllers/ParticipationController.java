@@ -11,8 +11,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -37,7 +35,7 @@ public class ParticipationController {
     public String showParticipationForm(@RequestParam(required = false) Long eventId, Model model) {
         model.addAttribute("participation", new Participation());
         model.addAttribute("volunteers", volunteerService.getVolunteers());
-        model.addAttribute("events", eventService.getEvents());
+        model.addAttribute("events", eventService.getApprovedEvents());   // <-- μόνο APPROVED
         if (eventId != null) {
             model.addAttribute("selectedEventId", eventId);
         }
@@ -110,7 +108,7 @@ public class ParticipationController {
     // Λίστα συμμετοχών ανά εθελοντή (για τον εθελοντή)
     @GetMapping("/volunteer/{volunteerId}")
     public String listParticipationsByVolunteer(@PathVariable Long volunteerId, Model model) {
-        model.addAttribute("participations", participationService.getParticipationsByVolunteer(volunteerId));
+        model.addAttribute("participations", participationService.getActiveOrValidParticipationsByVolunteer(volunteerId));
         model.addAttribute("volunteer", volunteerService.getVolunteer(volunteerId));
         model.addAttribute("activePage", "participation");
         return "participation/volunteer-participations";

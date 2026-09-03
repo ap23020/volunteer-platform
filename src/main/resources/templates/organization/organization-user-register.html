@@ -3,15 +3,19 @@
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{page_layout/layout}">
 <head>
-    <title>Register Organization</title>
+    <title>Register Organization User</title>
 </head>
 <body>
 <div layout:fragment="main-content" class="d-flex flex-column h-100">
     <div class="container py-5">
         <div class="row justify-content-center">
             <div class="col-md-8">
-                <h2 class="mb-4">Organization Registration</h2>
-                <form th:action="@{/organization/register}" th:object="${organizationUser}" method="post">
+                <h2 class="mb-4">Register as Organization User</h2>
+
+                <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+                <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+
+                <form th:action="@{/organization/user/register}" th:object="${organizationUser}" method="post">
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">First Name</label>
@@ -34,30 +38,16 @@
                         <label class="form-label">Phone</label>
                         <input type="text" class="form-control" th:field="*{phone}">
                     </div>
-
-                    <hr class="bg-white">
-                    <h5>Organization Details</h5>
-
                     <div class="mb-3">
-                        <label class="form-label">Organization Name</label>
-                        <input type="text" class="form-control" th:field="*{organization.name}" required>
+                        <label class="form-label">Organization</label>
+                        <select class="form-control" th:field="*{organization.id}" required>
+                            <option value="">Select Organization</option>
+                            <option th:each="org : ${organizations}"
+                                    th:value="${org.id}"
+                                    th:text="${org.name}"></option>
+                        </select>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Description</label>
-                        <textarea class="form-control" th:field="*{organization.description}" rows="3"></textarea>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Website</label>
-                            <input type="text" class="form-control" th:field="*{organization.website}">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Organization Phone</label>
-                            <input type="text" class="form-control" th:field="*{organization.phone}">
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">Submit</button>
+                    <button type="submit" class="btn btn-primary">Register</button>
                     <a th:href="@{/organization/list}" class="btn btn-secondary">Cancel</a>
                 </form>
             </div>

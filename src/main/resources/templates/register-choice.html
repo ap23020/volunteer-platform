@@ -13,7 +13,7 @@
 
         <div class="row justify-content-center mt-4">
             <!-- Volunteer Card -->
-            <div class="col-md-4 mb-3">
+            <div class="col-12 col-md-4 mb-3">
                 <div class="card bg-transparent border-light h-100">
                     <div class="card-body">
                         <h5 class="card-title text-white">Volunteer</h5>
@@ -23,13 +23,24 @@
                 </div>
             </div>
 
-            <!-- Organization Card -->
-            <div class="col-md-4 mb-3">
+            <!-- New Organization Card -->
+            <div class="col-12 col-md-4 mb-3">
                 <div class="card bg-transparent border-light h-100">
                     <div class="card-body">
                         <h5 class="card-title text-white">Organization</h5>
-                        <p class="card-text text-white-50">Create and manage volunteer events.</p>
-                        <a th:href="@{/organization/register}" class="btn btn-light">Register as Organization</a>
+                        <p class="card-text text-white-50">Register your organization.</p>
+                        <a th:href="@{/organization/register}" class="btn btn-light">Register Organization</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Organization User Card -->
+            <div class="col-12 col-md-4 mb-3">
+                <div class="card bg-transparent border-light h-100">
+                    <div class="card-body">
+                        <h5 class="card-title text-white">Organization User</h5>
+                        <p class="card-text text-white-50">Join an existing organization as a user.</p>
+                        <a th:href="@{/organization/user/register}" class="btn btn-light">Register as Organization User</a>
                     </div>
                 </div>
             </div>

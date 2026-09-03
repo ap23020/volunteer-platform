@@ -12,10 +12,9 @@ public class OrganizationUser extends User {
     @Column(name = "last_name")
     private String lastName;
 
-    @ManyToOne(cascade = {CascadeType.PERSIST, CascadeType.MERGE,
-            CascadeType.DETACH, CascadeType.REFRESH})
+    @ManyToOne
     @JoinColumn(name = "organization_id", referencedColumnName = "id")
-    private Organization organization;
+    private Organization organization = new Organization();
 
     // Constructors
     public OrganizationUser() {

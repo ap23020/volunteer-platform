@@ -25,7 +25,7 @@ public class AdminController {
     @GetMapping("/users/pending")
     public String listPendingUsers(Model model) {
         model.addAttribute("users", userService.getPendingUsers());
-        model.addAttribute("activePage", "admin");
+        model.addAttribute("activePage", "adminUsers");
         return "admin/pending-users";
     }
 
@@ -51,7 +51,7 @@ public class AdminController {
     @GetMapping("/events/pending")
     public String listPendingEvents(Model model) {
         model.addAttribute("events", eventService.getPendingEvents());
-        model.addAttribute("activePage", "admin");
+        model.addAttribute("activePage", "adminEvents");
         return "admin/pending-events";
     }
 

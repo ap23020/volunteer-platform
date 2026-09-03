@@ -1,5 +1,6 @@
 package gr.hua.dit.ap.vmp.controllers;
 
+import gr.hua.dit.ap.vmp.entities.Organization;
 import gr.hua.dit.ap.vmp.entities.OrganizationUser;
 import gr.hua.dit.ap.vmp.entities.Role;
 import gr.hua.dit.ap.vmp.entities.UserStatus;
@@ -7,11 +8,7 @@ import gr.hua.dit.ap.vmp.service.OrganizationService;
 import gr.hua.dit.ap.vmp.service.UserService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
@@ -19,41 +16,78 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class OrganizationController {
 
     private final OrganizationService organizationService;
-    private final UserService userService;   // <-- δήλωση πεδίου
+    private final UserService userService;
 
     public OrganizationController(OrganizationService organizationService,
-                                  UserService userService) { // <-- εισαγωγή στον constructor
+                                  UserService userService) {
         this.organizationService = organizationService;
         this.userService = userService;
     }
 
+    // ===== Οργανισμός =====
     @GetMapping("/register")
     public String showOrganizationRegistrationForm(Model model) {
-        model.addAttribute("organizationUser", new OrganizationUser());
+        model.addAttribute("organization", new Organization());
         model.addAttribute("activePage", "register");
-        return "organization/register-org";
+        return "organization/organization-register";
     }
 
     @PostMapping("/register")
-    public String registerOrganization(@ModelAttribute("organizationUser") OrganizationUser organizationUser,
-                                       RedirectAttributes redirectAttributes,
-                                       Model model) {
+    public String registerOrganization(@ModelAttribute("organization") Organization organization,
+                                       RedirectAttributes redirectAttributes) {
+        organizationService.saveOrganization(organization);
+        redirectAttributes.addFlashAttribute("successMessage", "Organization registered successfully!");
+        return "redirect:/organization/list";
+    }
 
-        // Έλεγχος ύπαρξης email
+    // ===== Χρήστης Οργανισμού =====
+    @GetMapping("/user/register")
+    public String showOrganizationUserRegistrationForm(Model model) {
+        model.addAttribute("organizationUser", new OrganizationUser());
+        model.addAttribute("organizations", organizationService.getOrganizations());
+        model.addAttribute("activePage", "register");
+        return "organization/organization-user-register";
+    }
+
+    @PostMapping("/user/register")
+    public String registerOrganizationUser(@ModelAttribute("organizationUser") OrganizationUser organizationUser,
+                                           RedirectAttributes redirectAttributes,
+                                           Model model) {
+
+        // Έλεγχος email
         if (userService.isEmailTaken(organizationUser.getEmail())) {
             model.addAttribute("errorMessage", "A user with this email already exists.");
-            model.addAttribute("organizationUser", organizationUser);
+            model.addAttribute("organizations", organizationService.getOrganizations());
             model.addAttribute("activePage", "register");
-            return "organization/register-org";
+            return "organization/organization-user-register";
+        }
+
+        // Φόρτωση του επιλεγμένου οργανισμού
+        if (organizationUser.getOrganization() != null && organizationUser.getOrganization().getId() != null) {
+            Organization org = organizationService.getOrganization(organizationUser.getOrganization().getId());
+            if (org == null) {
+                model.addAttribute("errorMessage", "Selected organization not found.");
+                model.addAttribute("organizations", organizationService.getOrganizations());
+                model.addAttribute("activePage", "register");
+                return "organization/organization-user-register";
+            }
+            organizationUser.setOrganization(org);
+        } else {
+            model.addAttribute("errorMessage", "Please select an organization.");
+            model.addAttribute("organizations", organizationService.getOrganizations());
+            model.addAttribute("activePage", "register");
+            return "organization/organization-user-register";
         }
 
         organizationUser.setRole(Role.ORGANIZATION);
         organizationUser.setStatus(UserStatus.PENDING_APPROVAL);
         organizationService.saveOrganizationUser(organizationUser);
-        redirectAttributes.addFlashAttribute("successMessage", "Registration successful! Awaiting approval.");
-        return "redirect:/organization/list";
+
+        redirectAttributes.addFlashAttribute("successMessage", "Registration submitted! Awaiting admin approval.");
+        return "redirect:/registration-pending";
     }
 
+    // ===== Λίστες =====
     @GetMapping("/list")
     public String listOrganizations(Model model) {
         model.addAttribute("organizations", organizationService.getOrganizations());
@@ -68,6 +102,7 @@ public class OrganizationController {
         return "organization/users";
     }
 
+    // ===== Διαγραφές =====
     @PostMapping("/users/delete/{id}")
     public String deleteOrganizationUser(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         organizationService.deleteOrganizationUser(id);
@@ -80,5 +115,10 @@ public class OrganizationController {
         organizationService.deleteOrganization(id);
         redirectAttributes.addFlashAttribute("successMessage", "Organization deleted successfully.");
         return "redirect:/organization/list";
+    }
+
+    @GetMapping("/registration-pending")
+    public String showPendingPage() {
+        return "registration-pending";
     }
 }

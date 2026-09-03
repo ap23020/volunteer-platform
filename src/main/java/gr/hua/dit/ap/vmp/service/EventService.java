@@ -15,6 +15,7 @@ public class EventService {
     private final OrganizationUserRepository organizationUserRepository;
     private final NotificationService notificationService;
 
+    // Constructor injection
     public EventService(EventRepository eventRepository,
                         OrganizationUserRepository organizationUserRepository,
                         NotificationService notificationService) {
@@ -23,31 +24,43 @@ public class EventService {
         this.notificationService = notificationService;
     }
 
+    // Λίστα όλων των events
     @Transactional
     public List<Event> getEvents() {
         return eventRepository.findAll();
     }
 
+    // Λίστα εγκεκριμένων events (για φόρμες συμμετοχής)
+    @Transactional
+    public List<Event> getApprovedEvents() {
+        return eventRepository.findByStatus(EventStatus.APPROVED);
+    }
+
+    // Βρες event με id
     @Transactional
     public Event getEvent(Long id) {
         return eventRepository.findById(id).orElse(null);
     }
 
+    // Δημιουργία νέου event
     @Transactional
     public void saveEvent(Event event) {
         eventRepository.save(event);
     }
 
+    // Διαγραφή event
     @Transactional
     public void deleteEvent(Long id) {
         eventRepository.deleteById(id);
     }
 
+    // Λίστα εκκρεμών events για admin
     @Transactional
     public List<Event> getPendingEvents() {
         return eventRepository.findByStatus(EventStatus.PENDING_APPROVAL);
     }
 
+    // Έγκριση event
     @Transactional
     public void approveEvent(Long eventId) {
         Event event = eventRepository.findById(eventId).orElse(null);
@@ -55,13 +68,14 @@ public class EventService {
             event.setStatus(EventStatus.APPROVED);
             eventRepository.save(event);
 
-            // Ειδοποίηση προς όλους τους χρήστες του οργανισμού
+            // Ειδοποίηση προς οργανισμό
             notifyOrganizationUsers(event, NotificationType.EVENT_APPROVED,
                     "Event Approved",
                     "Your event \"" + event.getTitle() + "\" has been approved.");
         }
     }
 
+    // Απόρριψη event με σχόλιο
     @Transactional
     public void rejectEvent(Long eventId, String comment) {
         Event event = eventRepository.findById(eventId).orElse(null);
@@ -76,7 +90,26 @@ public class EventService {
         }
     }
 
-    // Βοηθητική μέθοδος που ειδοποιεί όλους τους OrganizationUser του event
+    // Ενημέρωση (edit) event – χρησιμοποιείται για επανυποβολή απορριφθέντος
+    @Transactional
+    public void updateEvent(Long id, Event updatedEvent) {
+        Event existing = eventRepository.findById(id).orElse(null);
+        if (existing != null) {
+            existing.setTitle(updatedEvent.getTitle());
+            existing.setDescription(updatedEvent.getDescription());
+            existing.setDateTime(updatedEvent.getDateTime());
+            existing.setDuration(updatedEvent.getDuration());
+            existing.setLocation(updatedEvent.getLocation());
+            existing.setMaxParticipants(updatedEvent.getMaxParticipants());
+            existing.setCategory(updatedEvent.getCategory());
+            existing.setOrganization(updatedEvent.getOrganization());
+            existing.setStatus(EventStatus.PENDING_APPROVAL); // επανυποβολή
+            existing.setAdminComment(null);                   // καθαρίζουμε παλιό σχόλιο
+            eventRepository.save(existing);
+        }
+    }
+
+    // Βοηθητική μέθοδος: ειδοποιεί όλους τους χρήστες του οργανισμού του event
     private void notifyOrganizationUsers(Event event, NotificationType type, String title, String message) {
         Organization org = event.getOrganization();
         if (org != null) {

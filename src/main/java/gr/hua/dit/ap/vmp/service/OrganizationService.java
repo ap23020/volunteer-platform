@@ -3,6 +3,7 @@ package gr.hua.dit.ap.vmp.service;
 import gr.hua.dit.ap.vmp.entities.NotificationType;
 import gr.hua.dit.ap.vmp.entities.Organization;
 import gr.hua.dit.ap.vmp.entities.OrganizationUser;
+import gr.hua.dit.ap.vmp.entities.UserStatus;
 import gr.hua.dit.ap.vmp.repository.OrganizationRepository;
 import gr.hua.dit.ap.vmp.repository.OrganizationUserRepository;
 import jakarta.transaction.Transactional;
@@ -35,7 +36,7 @@ public class OrganizationService {
     // ===== Μέθοδοι για Χρήστες Οργανισμών =====
     @Transactional
     public List<OrganizationUser> getOrganizationUsers() {
-        return organizationUserRepository.findAll();
+        return organizationUserRepository.findByStatus(UserStatus.ACTIVE);
     }
 
     @Transactional
@@ -82,5 +83,15 @@ public class OrganizationService {
 
         // Διαγραφή του οργανισμού
         organizationRepository.delete(org);
+    }
+
+    @Transactional
+    public void saveOrganization(Organization organization) {
+        organizationRepository.save(organization);
+    }
+
+    @Transactional
+    public Organization getOrganization(Long id) {
+        return organizationRepository.findById(id).orElse(null);
     }
 }

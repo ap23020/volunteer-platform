@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ParticipationService {
@@ -38,6 +39,19 @@ public class ParticipationService {
     }
 
     @Transactional
+    public List<Participation> getFilteredParticipations(Long eventId, ParticipationStatus status) {
+        if (eventId != null && status != null) {
+            return participationRepository.findByEventIdAndStatus(eventId, status);
+        } else if (eventId != null) {
+            return participationRepository.findByEventId(eventId);
+        } else if (status != null) {
+            return participationRepository.findByStatus(status);
+        } else {
+            return participationRepository.findAll();
+        }
+    }
+
+    @Transactional
     public List<Participation> getParticipationsByEvent(Long eventId) {
         return participationRepository.findByEventId(eventId);
     }
@@ -60,8 +74,18 @@ public class ParticipationService {
             return "Volunteer or Event not found.";
         }
 
-        if (participationRepository.existsByVolunteerIdAndEventId(volunteerId, eventId)) {
-            return "You have already applied for this event.";
+        if (event.getStatus() != EventStatus.APPROVED) {
+            return "You can only apply to approved events.";
+        }
+
+        // Έλεγχος για τυχόν ενεργή συμμετοχή στο ίδιο event
+        List<Participation> existing = participationRepository.findByVolunteerIdAndEventId(volunteerId, eventId);
+        boolean hasActive = existing.stream()
+                .anyMatch(p -> p.getStatus() == ParticipationStatus.PENDING_ORG_APPROVAL
+                        || p.getStatus() == ParticipationStatus.APPROVED
+                        || p.getStatus() == ParticipationStatus.CHECKED_IN);
+        if (hasActive) {
+            return "You already have an active application for this event.";
         }
 
         int currentRegistrations = participationRepository.findByEventId(eventId).size();
@@ -72,7 +96,7 @@ public class ParticipationService {
         Participation participation = new Participation(volunteer, event);
         participationRepository.save(participation);
 
-        // Ειδοποίηση προς τον οργανισμό
+        // Ειδοποίηση οργανισμού
         Organization org = event.getOrganization();
         if (org != null) {
             List<OrganizationUser> orgUsers = organizationUserRepository.findByOrganizationId(org.getId());
@@ -86,7 +110,6 @@ public class ParticipationService {
                 );
             }
         }
-
         return null;
     }
 
@@ -158,15 +181,9 @@ public class ParticipationService {
     }
 
     @Transactional
-    public List<Participation> getFilteredParticipations(Long eventId, ParticipationStatus status) {
-        if (eventId != null && status != null) {
-            return participationRepository.findByEventIdAndStatus(eventId, status);
-        } else if (eventId != null) {
-            return participationRepository.findByEventId(eventId);
-        } else if (status != null) {
-            return participationRepository.findByStatus(status);
-        } else {
-            return participationRepository.findAll();
-        }
+    public List<Participation> getActiveOrValidParticipationsByVolunteer(Long volunteerId) {
+        return participationRepository.findByVolunteerId(volunteerId).stream()
+                .filter(p -> p.getStatus() != ParticipationStatus.REJECTED)
+                .collect(Collectors.toList());
     }
 }
