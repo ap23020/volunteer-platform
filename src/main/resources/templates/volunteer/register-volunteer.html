@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{page_layout/layout}">
+<head>
+    <title>Εγγραφή Εθελοντή</title>
+</head>
+<body>
+<div layout:fragment="main-content">
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <h2 class="mb-4">Volunteer Registration</h2>
+
+                <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+
+                <form th:action="@{/volunteer/register}" th:object="${volunteer}" method="post">
+                    <div class="mb-3">
+                        <label class="form-label">First Name</label>
+                        <input type="text" class="form-control" th:field="*{firstName}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Last Name</label>
+                        <input type="text" class="form-control" th:field="*{lastName}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" th:field="*{email}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" th:field="*{password}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Phone</label>
+                        <input type="text" class="form-control" th:field="*{phone}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Skills</label>
+                        <input type="text" class="form-control" th:field="*{skills}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Interests</label>
+                        <input type="text" class="form-control" th:field="*{interests}">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                    <a th:href="@{/volunteer/list}" class="btn btn-secondary">Cancel</a>
+                </form>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{page_layout/layout}">
+<head>
+    <title>Organizations</title>
+</head>
+<body>
+<div layout:fragment="main-content" class="d-flex flex-column h-100">
+    <div class="container py-5">
+        <h2 class="mb-4">Organizations</h2>
+
+        <table class="table table-striped table-bordered">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Website</th>
+                <th>Phone</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="org : ${organizations}">
+                <td th:text="${org.id}"></td>
+                <td th:text="${org.name}"></td>
+                <td th:text="${org.description}"></td>
+                <td>
+                    <a th:href="${org.website}" th:text="${org.website}" target="_blank"></a>
+                </td>
+                <td th:text="${org.phone}"></td>
+                <td>
+                    <form th:action="@{/organization/delete/{id}(id=${org.id})}"
+                          method="post"
+                          onsubmit="return confirm('Delete this organization and all its users?');">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div th:if="${#lists.isEmpty(organizations)}">
+            <p>No organizations yet.</p>
+        </div>
+    </div>
+</div>
+</body>
+</html>

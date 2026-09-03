@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en" class="h-100" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title layout:title-pattern="$CONTENT_TITLE">Volunteer Platform</title>
+    <link rel="icon" th:href="@{/img/favicon.ico}" type="image/x-icon">
+    <!-- Bootstrap CSS -->
+    <link th:href="@{/css/bootstrap.min.css}" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link th:href="@{/css/cover.css}" rel="stylesheet">
+</head>
+<body class="d-flex h-100 text-center text-bg-dark">
+
+<div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
+    <!-- HEADER -->
+    <header class="mb-auto" th:replace="page_layout/header :: header"></header>
+
+    <!-- MAIN CONTENT -->
+    <main class="px-3 flex-grow-1" layout:fragment="main-content"></main>
+
+    <!-- FOOTER -->
+    <footer class="mt-auto text-white-50" th:replace="page_layout/footer :: footer"></footer>
+</div>
+
+<!-- Bootstrap JS bundle -->
+<script th:src="@{/js/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

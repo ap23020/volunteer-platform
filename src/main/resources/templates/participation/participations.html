@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{page_layout/layout}">
+<head>
+    <title>Participations</title>
+</head>
+<body>
+<div layout:fragment="main-content" class="d-flex flex-column h-100">
+    <div class="container py-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Participations</h2>
+            <a th:href="@{/participation/new}" class="btn btn-primary">New Application</a>
+        </div>
+
+        <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+
+        <!-- ΦΙΛΤΡΟ -->
+        <form th:action="@{/participation/list}" method="get" class="row g-3 mb-4">
+            <div class="col-md-5">
+                <label class="form-label">Event</label>
+                <select class="form-control" name="eventId">
+                    <option value="">All Events</option>
+                    <option th:each="e : ${events}"
+                            th:value="${e.id}"
+                            th:text="${e.title + ' | ' + (e.dateTime != null ? #temporals.format(e.dateTime, 'dd/MM/yyyy') : 'N/A') + ' | ' + (e.organization != null ? e.organization.name : 'N/A')}"></option>
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label class="form-label">Status</label>
+                <select class="form-control" name="status">
+                    <option value="">All Statuses</option>
+                    <option th:each="s : ${statuses}"
+                            th:value="${s.name()}"
+                            th:text="${s}"
+                            th:selected="${s == selectedStatus}"></option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-primary flex-fill">Filter</button>
+                <a th:href="@{/participation/list}" class="btn btn-secondary flex-fill">Clear</a>
+            </div>
+        </form>
+
+        <table class="table table-striped table-bordered">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Volunteer</th>
+                <th>Event</th>
+                <th>Status</th>
+                <th>Submitted At</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="p : ${participations}">
+                <td th:text="${p.id}"></td>
+                <td th:text="${p.volunteer.firstName + ' ' + p.volunteer.lastName}"></td>
+                <td th:text="${p.event.title}"></td>
+                <td th:text="${p.status}"></td>
+                <td th:text="${p.createdAt != null ? #temporals.format(p.createdAt, 'dd/MM/yyyy HH:mm') : '-'}"></td>
+                <td>
+                    <div class="d-flex gap-2">
+                        <form th:if="${p.status == T(gr.hua.dit.ap.vmp.entities.ParticipationStatus).PENDING_ORG_APPROVAL}"
+                              th:action="@{/participation/approve/{id}(id=${p.id})}" method="post">
+                            <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                        </form>
+                        <form th:if="${p.status == T(gr.hua.dit.ap.vmp.entities.ParticipationStatus).PENDING_ORG_APPROVAL}"
+                              th:action="@{/participation/reject/{id}(id=${p.id})}" method="post">
+                            <button type="submit" class="btn btn-danger btn-sm">Reject</button>
+                        </form>
+                        <form th:if="${p.status == T(gr.hua.dit.ap.vmp.entities.ParticipationStatus).APPROVED}"
+                              th:action="@{/participation/checkin/{id}(id=${p.id})}" method="post">
+                            <button type="submit" class="btn btn-info btn-sm">Check-in</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>

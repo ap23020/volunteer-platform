@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{page_layout/layout}">
+<head>
+    <title>Reviews</title>
+</head>
+<body>
+<div layout:fragment="main-content" class="d-flex flex-column h-100">
+    <div class="container py-5">
+        <h2 class="mb-4">Reviews</h2>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Reviews</h2>
+            <a th:href="@{/review/checkins}" class="btn btn-primary">Review Check-ins</a>
+        </div>
+
+        <table class="table table-striped table-bordered">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Rating</th>
+                <th>Comment</th>
+                <th>Event</th>
+                <th>Volunteer</th>
+                <th>Submitted At</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="r : ${reviews}">
+                <td th:text="${r.id}"></td>
+                <td th:text="${r.rating}"></td>
+                <td th:text="${r.comment}"></td>
+                <td th:text="${r.participation.event.title}"></td>
+                <td th:text="${r.participation.volunteer.firstName + ' ' + r.participation.volunteer.lastName}"></td>
+                <td th:text="${r.createdAt != null ? #temporals.format(r.createdAt, 'dd/MM/yyyy HH:mm') : '-'}"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{page_layout/layout}">
+<head>
+    <title>My Participations</title>
+</head>
+<body>
+<div layout:fragment="main-content" class="d-flex flex-column h-100">
+    <div class="container py-5">
+        <h2 class="mb-4">
+            Participations for:
+            <span th:text="${volunteer != null ? volunteer.firstName + ' ' + volunteer.lastName : 'Volunteer'}"></span>
+        </h2>
+
+        <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+
+        <table class="table table-striped table-bordered">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Event</th>
+                <th>Status</th>
+                <th>Submitted At</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="p : ${participations}">
+                <td th:text="${p.id}"></td>
+                <td th:text="${p.event.title}"></td>
+                <td th:text="${p.status}"></td>
+                <td th:text="${p.createdAt != null ? #temporals.format(p.createdAt, 'dd/MM/yyyy HH:mm') : '-'}"></td>
+                <td>
+                    <form th:if="${p.status == T(gr.hua.dit.ap.vmp.entities.ParticipationStatus).PENDING_ORG_APPROVAL or p.status == T(gr.hua.dit.ap.vmp.entities.ParticipationStatus).APPROVED}"
+                          th:action="@{/participation/cancel/{id}(id=${p.id})}" method="post"
+                          onsubmit="return confirm('Cancel this participation?');">
+                        <button type="submit" class="btn btn-warning btn-sm">Cancel</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>

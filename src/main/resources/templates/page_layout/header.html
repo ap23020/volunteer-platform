@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<header th:fragment="header">
+    <div class="d-flex justify-content-between align-items-center w-100">
+        <a th:href="@{/}" class="text-decoration-none text-white">
+            <h3 class="mb-0">Volunteer Platform</h3>
+        </a>
+        <nav class="nav nav-masthead">
+            <a class="nav-link fw-bold py-1 px-0"
+               th:classappend="${activePage == 'home' ? 'active' : ''}"
+               th:href="@{/}">Home</a>
+            <a class="nav-link fw-bold py-1 px-0"
+               th:classappend="${activePage == 'register' ? 'active' : ''}"
+               th:href="@{/register}">Register</a>
+            <a class="nav-link fw-bold py-1 px-0"
+               th:classappend="${activePage == 'volunteers' ? 'active' : ''}"
+               th:href="@{/volunteer/list}">Volunteers</a>
+            <a class="nav-link fw-bold py-1 px-0"
+               th:classappend="${activePage == 'organizations' ? 'active' : ''}"
+               th:href="@{/organization/list}">Organizations</a>
+            <a class="nav-link fw-bold py-1 px-0"
+               th:classappend="${activePage == 'organizationUsers' ? 'active' : ''}"
+               th:href="@{/organization/users}">Org Users</a>
+            <a class="nav-link fw-bold py-1 px-0"
+               th:classappend="${activePage == 'events' ? 'active' : ''}"
+               th:href="@{/event/list}">Events</a>
+            <a class="nav-link fw-bold py-1 px-0"
+               th:classappend="${activePage == 'participation' ? 'active' : ''}"
+               th:href="@{/participation/list}">Participations</a>
+            <a class="nav-link fw-bold py-1 px-0"
+               th:classappend="${activePage == 'reviews' ? 'active' : ''}"
+               th:href="@{/review/list}">Reviews</a>
+            <a class="nav-link fw-bold py-1 px-0"
+               th:classappend="${activePage == 'admin' ? 'active' : ''}"
+               th:href="@{/admin/users/pending}">Pending Users</a>
+
+            <a class="nav-link fw-bold py-1 px-0"
+               th:classappend="${activePage == 'admin' ? 'active' : ''}"
+               th:href="@{/admin/events/pending}">Pending Events</a>
+            <a class="nav-link fw-bold py-1 px-0"
+               th:classappend="${activePage == 'notifications' ? 'active' : ''}"
+               th:href="@{/notifications/list}">Notifications</a>
+
+        </nav>
+    </div>
+</header>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{page_layout/layout}">
+<head>
+    <title>Apply for Event</title>
+</head>
+<body>
+<div layout:fragment="main-content" class="d-flex flex-column h-100">
+    <div class="container py-5">
+        <h2 class="mb-4">Apply for an Event</h2>
+
+        <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+        <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+
+        <form th:action="@{/participation/new}" method="post">
+            <div class="mb-3">
+                <label class="form-label">Volunteer</label>
+                <select class="form-control" name="volunteerId" required>
+                    <option value="">Select Volunteer</option>
+                    <option th:each="v : ${volunteers}"
+                            th:value="${v.id}"
+                            th:text="${v.firstName + ' ' + v.lastName}"></option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Event</label>
+                <select class="form-control" name="eventId" required>
+                    <option value="">Select Event</option>
+                    <option th:each="e : ${events}"
+                            th:value="${e.id}"
+                            th:text="${e.title + ' | ' + (e.dateTime != null ? #temporals.format(e.dateTime, 'dd/MM/yyyy') : 'N/A') + ' | ' + (e.organization != null ? e.organization.name : 'N/A')}"
+                            th:selected="${e.id == selectedEventId}"></option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit Application</button>
+            <a th:href="@{/participation/list}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+</body>
+</html>

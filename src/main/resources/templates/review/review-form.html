@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{page_layout/layout}">
+<head>
+    <title>Review</title>
+</head>
+<body>
+<div layout:fragment="main-content" class="d-flex flex-column h-100">
+    <div class="container py-5">
+        <h2 class="mb-4">Submit Review</h2>
+
+        <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+
+        <form th:action="@{/review/new}" method="post">
+            <input type="hidden" name="participationId" th:value="${participation.id}">
+
+            <div class="mb-3">
+                <label class="form-label">Rating</label>
+                <select class="form-control" name="rating" required>
+                    <option value="1">1 - Poor</option>
+                    <option value="2">2 - Fair</option>
+                    <option value="3">3 - Good</option>
+                    <option value="4">4 - Very Good</option>
+                    <option value="5">5 - Excellent</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Comment</label>
+                <textarea class="form-control" name="comment" rows="4"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Submit Review</button>
+            <a th:href="@{/review/checkins}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{page_layout/layout}">
+<head>
+    <title>Register</title>
+</head>
+<body>
+<div layout:fragment="main-content" class="d-flex flex-column h-100">
+    <div class="container py-5 text-center">
+        <h2>Choose Registration Type</h2>
+        <p class="lead">Select how you want to participate in the platform.</p>
+
+        <div class="row justify-content-center mt-4">
+            <!-- Volunteer Card -->
+            <div class="col-md-4 mb-3">
+                <div class="card bg-transparent border-light h-100">
+                    <div class="card-body">
+                        <h5 class="card-title text-white">Volunteer</h5>
+                        <p class="card-text text-white-50">Join activities and help your community.</p>
+                        <a th:href="@{/volunteer/register}" class="btn btn-light">Register as Volunteer</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Organization Card -->
+            <div class="col-md-4 mb-3">
+                <div class="card bg-transparent border-light h-100">
+                    <div class="card-body">
+                        <h5 class="card-title text-white">Organization</h5>
+                        <p class="card-text text-white-50">Create and manage volunteer events.</p>
+                        <a th:href="@{/organization/register}" class="btn btn-light">Register as Organization</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
