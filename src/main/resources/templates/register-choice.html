@@ -7,40 +7,63 @@
 </head>
 <body>
 <div layout:fragment="main-content" class="d-flex flex-column h-100">
-    <div class="container py-5 text-center">
-        <h2>Choose Registration Type</h2>
-        <p class="lead">Select how you want to participate in the platform.</p>
+    <div class="container py-5">
+        <h2 class="text-center">Choose Registration Type</h2>
+        <p class="lead text-center">Select how you want to participate in the platform.</p>
 
-        <div class="row justify-content-center mt-4">
-            <!-- Volunteer Card -->
-            <div class="col-12 col-md-4 mb-3">
-                <div class="card bg-transparent border-light h-100">
-                    <div class="card-body">
-                        <h5 class="card-title text-white">Volunteer</h5>
-                        <p class="card-text text-white-50">Join activities and help your community.</p>
-                        <a th:href="@{/volunteer/register}" class="btn btn-light">Register as Volunteer</a>
+        <!-- Bootstrap Tabs -->
+        <ul class="nav nav-tabs justify-content-center mt-4" id="registerTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="volunteer-tab" data-bs-toggle="tab"
+                        data-bs-target="#volunteer" type="button" role="tab"
+                        aria-controls="volunteer" aria-selected="true">Volunteer</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="organization-tab" data-bs-toggle="tab"
+                        data-bs-target="#organization" type="button" role="tab"
+                        aria-controls="organization" aria-selected="false">Organization</button>
+            </li>
+        </ul>
+
+        <!-- Περιεχόμενο tabs -->
+        <div class="tab-content mt-4">
+            <!-- Tab Volunteer -->
+            <div class="tab-pane fade show active" id="volunteer" role="tabpanel" aria-labelledby="volunteer-tab">
+                <div class="row justify-content-center">
+                    <div class="col-md-6">
+                        <div class="card bg-transparent border-light">
+                            <div class="card-body text-center">
+                                <h5 class="card-title text-white">Volunteer</h5>
+                                <p class="card-text text-white-50">Join activities and help your community.</p>
+                                <a th:href="@{/volunteer/register}" class="btn btn-light">Register as Volunteer</a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- New Organization Card -->
-            <div class="col-12 col-md-4 mb-3">
-                <div class="card bg-transparent border-light h-100">
-                    <div class="card-body">
-                        <h5 class="card-title text-white">Organization</h5>
-                        <p class="card-text text-white-50">Register your organization.</p>
-                        <a th:href="@{/organization/register}" class="btn btn-light">Register Organization</a>
+            <!-- Tab Organization -->
+            <div class="tab-pane fade" id="organization" role="tabpanel" aria-labelledby="organization-tab">
+                <div class="row justify-content-center">
+                    <!-- Κάρτα νέου οργανισμού -->
+                    <div class="col-md-4 mb-3">
+                        <div class="card bg-transparent border-light h-100">
+                            <div class="card-body text-center">
+                                <h5 class="card-title text-white">New Organization</h5>
+                                <p class="card-text text-white-50">Register your organization.</p>
+                                <a th:href="@{/organization/register}" class="btn btn-light">Register Organization</a>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Organization User Card -->
-            <div class="col-12 col-md-4 mb-3">
-                <div class="card bg-transparent border-light h-100">
-                    <div class="card-body">
-                        <h5 class="card-title text-white">Organization User</h5>
-                        <p class="card-text text-white-50">Join an existing organization as a user.</p>
-                        <a th:href="@{/organization/user/register}" class="btn btn-light">Register as Organization User</a>
+                    <!-- Κάρτα χρήστη οργανισμού -->
+                    <div class="col-md-4 mb-3">
+                        <div class="card bg-transparent border-light h-100">
+                            <div class="card-body text-center">
+                                <h5 class="card-title text-white">Organization User</h5>
+                                <p class="card-text text-white-50">Join an existing organization.</p>
+                                <a th:href="@{/organization/user/register}" class="btn btn-light">Join as User</a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
