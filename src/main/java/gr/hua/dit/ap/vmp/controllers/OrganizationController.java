@@ -59,7 +59,7 @@ public class OrganizationController {
             model.addAttribute("errorMessage", "A user with this email already exists.");
             model.addAttribute("organizations", organizationService.getOrganizations());
             model.addAttribute("activePage", "register");
-            return "organization/organization-user-register";
+            return "redirect:/organization/registration-pending";
         }
 
         // Φόρτωση του επιλεγμένου οργανισμού
@@ -69,14 +69,14 @@ public class OrganizationController {
                 model.addAttribute("errorMessage", "Selected organization not found.");
                 model.addAttribute("organizations", organizationService.getOrganizations());
                 model.addAttribute("activePage", "register");
-                return "organization/organization-user-register";
+                return "redirect:/organization/registration-pending";
             }
             organizationUser.setOrganization(org);
         } else {
             model.addAttribute("errorMessage", "Please select an organization.");
             model.addAttribute("organizations", organizationService.getOrganizations());
             model.addAttribute("activePage", "register");
-            return "organization/organization-user-register";
+            return "redirect:/organization/registration-pending";
         }
 
         organizationUser.setRole(Role.ORGANIZATION);
