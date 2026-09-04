@@ -17,4 +17,8 @@ public class HomeController {
         return "index";
     }
 
+    @GetMapping("/registration-pending")
+    public String showPendingPage() {
+        return "registration-pending";
+    }
 }

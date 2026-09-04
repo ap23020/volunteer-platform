@@ -3,7 +3,6 @@ package gr.hua.dit.ap.vmp.service;
 import gr.hua.dit.ap.vmp.entities.NotificationType;
 import gr.hua.dit.ap.vmp.entities.Organization;
 import gr.hua.dit.ap.vmp.entities.OrganizationUser;
-import gr.hua.dit.ap.vmp.entities.UserStatus;
 import gr.hua.dit.ap.vmp.repository.OrganizationRepository;
 import gr.hua.dit.ap.vmp.repository.OrganizationUserRepository;
 import jakarta.transaction.Transactional;
@@ -27,16 +26,49 @@ public class OrganizationService {
         this.notificationService = notificationService;
     }
 
-    // ===== Μέθοδοι για Οργανισμούς =====
+    // ===== Οργανισμοί =====
+
     @Transactional
     public List<Organization> getOrganizations() {
         return organizationRepository.findAll();
     }
 
-    // ===== Μέθοδοι για Χρήστες Οργανισμών =====
+    @Transactional
+    public Organization getOrganization(Long id) {
+        return organizationRepository.findById(id).orElse(null);
+    }
+
+    // Ελέγχει αν υπάρχει ήδη οργανισμός με αυτό το όνομα
+    @Transactional
+    public boolean organizationNameExists(String name) {
+        return organizationRepository.findByName(name).isPresent();
+    }
+
+    // Αποθήκευση νέου οργανισμού με έλεγχο μοναδικότητας
+    @Transactional
+    public void saveOrganization(Organization organization) {
+        if (organization.getName() == null || organization.getName().trim().isEmpty()) {
+            throw new IllegalArgumentException("Organization name is required.");
+        }
+
+        // Καθαρισμός κενών προαιρετικών πεδίων
+        organization.setDescription(clean(organization.getDescription()));
+        organization.setWebsite(clean(organization.getWebsite()));
+        organization.setPhone(clean(organization.getPhone()));
+
+        // Έλεγχος μοναδικότητας ονόματος
+        if (organizationNameExists(organization.getName())) {
+            throw new IllegalArgumentException("Organization with this name already exists.");
+        }
+
+        organizationRepository.save(organization);
+    }
+
+    // ===== Χρήστες Οργανισμών =====
+
     @Transactional
     public List<OrganizationUser> getOrganizationUsers() {
-        return organizationUserRepository.findByStatus(UserStatus.ACTIVE);
+        return organizationUserRepository.findByStatus(gr.hua.dit.ap.vmp.entities.UserStatus.ACTIVE);
     }
 
     @Transactional
@@ -46,12 +78,11 @@ public class OrganizationService {
 
     @Transactional
     public void saveOrganizationUser(OrganizationUser user) {
-        // Έλεγχος ύπαρξης οργανισμού με το ίδιο όνομα
-        Organization org = user.getOrganization();
-        if (org != null && org.getName() != null) {
-            Optional<Organization> existing = organizationRepository.findByName(org.getName());
-            if (existing.isPresent()) {
-                user.setOrganization(existing.get());
+        // Φόρτωση πλήρους οργανισμού αν υπάρχει
+        if (user.getOrganization() != null && user.getOrganization().getId() != null) {
+            Organization org = getOrganization(user.getOrganization().getId());
+            if (org != null) {
+                user.setOrganization(org);
             }
         }
 
@@ -77,21 +108,16 @@ public class OrganizationService {
         Organization org = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new RuntimeException("Organization not found"));
 
-        // Διαγραφή των χρηστών που ανήκουν στον οργανισμό
         List<OrganizationUser> users = organizationUserRepository.findByOrganizationId(organizationId);
         organizationUserRepository.deleteAll(users);
-
-        // Διαγραφή του οργανισμού
         organizationRepository.delete(org);
     }
 
-    @Transactional
-    public void saveOrganization(Organization organization) {
-        organizationRepository.save(organization);
-    }
-
-    @Transactional
-    public Organization getOrganization(Long id) {
-        return organizationRepository.findById(id).orElse(null);
+    // Βοηθητική μέθοδος καθαρισμού κενών strings
+    private String clean(String value) {
+        if (value != null && value.trim().isEmpty()) {
+            return null;
+        }
+        return value;
     }
 }

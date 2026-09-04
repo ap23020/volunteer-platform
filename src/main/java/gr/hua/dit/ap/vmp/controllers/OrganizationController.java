@@ -35,9 +35,14 @@ public class OrganizationController {
     @PostMapping("/register")
     public String registerOrganization(@ModelAttribute("organization") Organization organization,
                                        RedirectAttributes redirectAttributes) {
-        organizationService.saveOrganization(organization);
-        redirectAttributes.addFlashAttribute("successMessage", "Organization registered successfully!");
-        return "redirect:/organization/list";
+        try {
+            organizationService.saveOrganization(organization);
+            redirectAttributes.addFlashAttribute("successMessage", "Organization registered successfully!");
+            return "redirect:/organization/list";
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/organization/register";
+        }
     }
 
     // ===== Χρήστης Οργανισμού =====
