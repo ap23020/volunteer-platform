@@ -33,12 +33,18 @@ public class ParticipationController {
     // Εμφάνιση φόρμας δήλωσης συμμετοχής
     @GetMapping("/new")
     public String showParticipationForm(@RequestParam(required = false) Long eventId, Model model) {
+        if (eventId == null) {
+            return "redirect:/event/list";
+        }
+
+        Event selectedEvent = eventService.getEvent(eventId);
+        if (selectedEvent == null) {
+            return "redirect:/event/list";
+        }
+
         model.addAttribute("participation", new Participation());
         model.addAttribute("volunteers", volunteerService.getVolunteers());
-        model.addAttribute("events", eventService.getApprovedEvents());   // <-- μόνο APPROVED
-        if (eventId != null) {
-            model.addAttribute("selectedEventId", eventId);
-        }
+        model.addAttribute("selectedEvent", selectedEvent);
         model.addAttribute("activePage", "participation");
         return "participation/participation-form";
     }
@@ -51,7 +57,7 @@ public class ParticipationController {
         String error = participationService.createParticipation(volunteerId, eventId);
         if (error != null) {
             redirectAttributes.addFlashAttribute("errorMessage", error);
-            return "redirect:/participation/new";
+            return "redirect:/participation/new?eventId=" + eventId;
         }
         redirectAttributes.addFlashAttribute("successMessage", "Application submitted successfully!");
         return "redirect:/participation/list";

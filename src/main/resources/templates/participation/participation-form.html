@@ -10,10 +10,12 @@
     <div class="container py-5">
         <h2 class="mb-4">Apply for an Event</h2>
 
+        <!-- Μηνύματα λάθους/επιτυχίας -->
         <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
         <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
 
         <form th:action="@{/participation/new}" method="post">
+            <!-- Επιλογή εθελοντή -->
             <div class="mb-3">
                 <label class="form-label">Volunteer</label>
                 <select class="form-control" name="volunteerId" required>
@@ -23,7 +25,17 @@
                             th:text="${v.firstName + ' ' + v.lastName}"></option>
                 </select>
             </div>
-            <div class="mb-3">
+
+            <!-- Περίπτωση 1: Ήρθαμε από Apply σε συγκεκριμένο event -> κλειδωμένο πεδίο -->
+            <div class="mb-3" th:if="${selectedEvent != null}">
+                <label class="form-label">Event</label>
+                <input type="text" class="form-control" th:value="${selectedEvent.title}" disabled>
+                <!-- Κρυφό πεδίο για να σταλεί το eventId -->
+                <input type="hidden" name="eventId" th:value="${selectedEvent.id}">
+            </div>
+
+            <!-- Περίπτωση 2: Δεν ήρθαμε από Apply -> δείχνουμε dropdown με διαθέσιμα events -->
+            <div class="mb-3" th:unless="${selectedEvent != null}">
                 <label class="form-label">Event</label>
                 <select class="form-control" name="eventId" required>
                     <option value="">Select Event</option>
@@ -33,6 +45,7 @@
                             th:selected="${e.id == selectedEventId}"></option>
                 </select>
             </div>
+
             <button type="submit" class="btn btn-primary">Submit Application</button>
             <a th:href="@{/participation/list}" class="btn btn-secondary">Cancel</a>
         </form>

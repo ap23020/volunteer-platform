@@ -32,11 +32,20 @@
                 <td th:text="${p.status}"></td>
                 <td th:text="${p.createdAt != null ? #temporals.format(p.createdAt, 'dd/MM/yyyy HH:mm') : '-'}"></td>
                 <td>
-                    <form th:if="${p.status == T(gr.hua.dit.ap.vmp.entities.ParticipationStatus).PENDING_ORG_APPROVAL or p.status == T(gr.hua.dit.ap.vmp.entities.ParticipationStatus).APPROVED}"
-                          th:action="@{/participation/cancel/{id}(id=${p.id})}" method="post"
-                          onsubmit="return confirm('Cancel this participation?');">
-                        <button type="submit" class="btn btn-warning btn-sm">Cancel</button>
-                    </form>
+                    <div class="d-flex gap-2">
+                        <!-- Κουμπί Cancel – εμφανίζεται μόνο για PENDING_ORG_APPROVAL ή APPROVED -->
+                        <form th:if="${p.status == T(gr.hua.dit.ap.vmp.entities.ParticipationStatus).PENDING_ORG_APPROVAL or p.status == T(gr.hua.dit.ap.vmp.entities.ParticipationStatus).APPROVED}"
+                              th:action="@{/participation/cancel/{id}(id=${p.id})}"
+                              method="post"
+                              onsubmit="return confirm('Cancel this participation?');">
+                            <button type="submit" class="btn btn-warning btn-sm">Cancel</button>
+                        </form>
+
+                        <!-- Κουμπί Review – εμφανίζεται μόνο για CHECKED_IN και χωρίς υπάρχον review -->
+                        <a th:if="${p.status.name() == 'CHECKED_IN' && p.review == null}"
+                           th:href="@{/review/new(participationId=${p.id})}"
+                           class="btn btn-success btn-sm">Review</a>
+                    </div>
                 </td>
 
             </tr>

@@ -11,6 +11,7 @@
         <h2 class="mb-4">Submit Review</h2>
 
         <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+        <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
 
         <form th:action="@{/review/new}" method="post">
             <input type="hidden" name="participationId" th:value="${participation.id}">
@@ -32,7 +33,7 @@
             </div>
 
             <button type="submit" class="btn btn-primary">Submit Review</button>
-            <a th:href="@{/review/checkins}" class="btn btn-secondary">Cancel</a>
+            <a th:href="@{/participation/volunteer/{id}(id=${participation.volunteer.id})}" class="btn btn-secondary">Cancel</a>
         </form>
     </div>
 </div>

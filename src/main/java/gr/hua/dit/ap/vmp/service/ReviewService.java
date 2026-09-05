@@ -66,7 +66,7 @@ public class ReviewService {
         if (event != null) {
             Organization org = event.getOrganization();
             if (org != null) {
-                List<OrganizationUser> orgUsers = organizationUserRepository.findByOrganizationId(org.getId());
+                List<OrganizationUser> orgUsers = organizationUserRepository.findByOrganizationIdAndStatus(org.getId(), UserStatus.ACTIVE);
                 for (OrganizationUser orgUser : orgUsers) {
                     notificationService.createNotification(
                             NotificationType.NEW_REVIEW,

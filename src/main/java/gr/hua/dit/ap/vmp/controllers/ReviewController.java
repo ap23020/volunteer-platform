@@ -37,8 +37,9 @@ public class ReviewController {
     public String showReviewForm(@RequestParam Long participationId, Model model) {
         Participation participation = participationService.getParticipation(participationId);
         if (participation == null) {
-            return "redirect:/review/checkins";
+            return "redirect:/participation/list";
         }
+
         model.addAttribute("participation", participation);
         model.addAttribute("activePage", "reviews");
         return "review/review-form";
@@ -55,16 +56,17 @@ public class ReviewController {
             redirectAttributes.addFlashAttribute("errorMessage", error);
             return "redirect:/review/new?participationId=" + participationId;
         }
-        redirectAttributes.addFlashAttribute("successMessage", "Review submitted successfully!");
-        return "redirect:/review/list";
-    }
 
-    // Λίστα με συμμετοχές που είναι CHECKED_IN και δεν έχουν αξιολογηθεί
-    @GetMapping("/checkins")
-    public String listCheckinsForReview(Model model) {
-        List<Participation> checkins = participationService.getCheckinsWithoutReview();
-        model.addAttribute("participations", checkins);
-        model.addAttribute("activePage", "reviews");
-        return "review/checkins";
+        // Βρες τη συμμετοχή για να πάρεις το volunteerId
+        Participation participation = participationService.getParticipation(participationId);
+        Long volunteerId = participation != null && participation.getVolunteer() != null
+                ? participation.getVolunteer().getId() : null;
+
+        redirectAttributes.addFlashAttribute("successMessage", "Review submitted successfully!");
+        if (volunteerId != null) {
+            return "redirect:/participation/volunteer/" + volunteerId;
+        } else {
+            return "redirect:/participation/list";
+        }
     }
 }

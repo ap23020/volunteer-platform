@@ -53,12 +53,17 @@
                         <a th:href="@{/participation/event/{id}(id=${event.id})}"
                            class="btn btn-info btn-sm">View</a>
 
+                        <a th:if="${event.status.name() == 'APPROVED'}"
+                           th:href="@{/participation/new(eventId=${event.id})}"
+                           class="btn btn-success btn-sm">Apply</a>
+
                         <!-- Cancel Event – μόνο για εγκεκριμένες εκδηλώσεις -->
                         <form th:if="${event.status.name() == 'APPROVED'}"
                               th:action="@{/event/cancel/{id}(id=${event.id})}"
                               method="post"
                               onsubmit="return confirm('Cancel this event? All participants will be notified.');">
                             <button type="submit" class="btn btn-warning btn-sm">Cancel</button>
+
                         </form>
 
                         <!-- Delete – πάντα διαθέσιμο -->
