@@ -25,6 +25,8 @@ public class OrganizationController {
     }
 
     // ===== Οργανισμός =====
+
+    // Φόρμα εγγραφής νέου οργανισμού
     @GetMapping("/register")
     public String showOrganizationRegistrationForm(Model model) {
         model.addAttribute("organization", new Organization());
@@ -32,37 +34,56 @@ public class OrganizationController {
         return "organization/organization-register";
     }
 
+    // Υποβολή εγγραφής νέου οργανισμού
     @PostMapping("/register")
     public String registerOrganization(@ModelAttribute("organization") Organization organization,
                                        RedirectAttributes redirectAttributes) {
         try {
             organizationService.saveOrganization(organization);
-            redirectAttributes.addFlashAttribute("successMessage", "Organization registered successfully!");
-            return "redirect:/organization/list";
+            redirectAttributes.addFlashAttribute("successMessage", "Organization submitted for approval.");
+            return "redirect:/registration-pending";
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
             return "redirect:/organization/register";
         }
     }
 
+    // Λίστα όλων των οργανισμών (θα χρησιμοποιηθεί για το admin ή για δημόσια προβολή)
+    @GetMapping("/list")
+    public String listOrganizations(Model model) {
+        model.addAttribute("organizations", organizationService.getAllOrganizations());
+        model.addAttribute("activePage", "organizations");
+        return "organization/organizations";
+    }
+
+    // Σελίδα εκκρεμούς έγκρισης (για μετά την εγγραφή)
+    @GetMapping("/registration-pending")
+    public String showPendingPage() {
+        return "registration-pending";
+    }
+
     // ===== Χρήστης Οργανισμού =====
+
+    // Φόρμα εγγραφής χρήστη οργανισμού
     @GetMapping("/user/register")
     public String showOrganizationUserRegistrationForm(Model model) {
         model.addAttribute("organizationUser", new OrganizationUser());
-        model.addAttribute("organizations", organizationService.getOrganizations());
+        // Στο dropdown εμφανίζουμε μόνο εγκεκριμένους οργανισμούς
+        model.addAttribute("organizations", organizationService.getApprovedOrganizations());
         model.addAttribute("activePage", "register");
         return "organization/organization-user-register";
     }
 
+    // Υποβολή εγγραφής χρήστη οργανισμού
     @PostMapping("/user/register")
     public String registerOrganizationUser(@ModelAttribute("organizationUser") OrganizationUser organizationUser,
                                            RedirectAttributes redirectAttributes,
                                            Model model) {
 
-        // Γενικός έλεγχος μοναδικότητας email
+        // Έλεγχος ύπαρξης email σε όλη την πλατφόρμα
         if (userService.isEmailTaken(organizationUser.getEmail())) {
             model.addAttribute("errorMessage", "A user with this email already exists.");
-            model.addAttribute("organizations", organizationService.getOrganizations());
+            model.addAttribute("organizations", organizationService.getApprovedOrganizations());
             model.addAttribute("activePage", "register");
             return "organization/organization-user-register";
         }
@@ -75,20 +96,13 @@ public class OrganizationController {
             return "redirect:/registration-pending";
         } catch (IllegalArgumentException e) {
             model.addAttribute("errorMessage", e.getMessage());
-            model.addAttribute("organizations", organizationService.getOrganizations());
+            model.addAttribute("organizations", organizationService.getApprovedOrganizations());
             model.addAttribute("activePage", "register");
             return "organization/organization-user-register";
         }
     }
 
-    // ===== Λίστες =====
-    @GetMapping("/list")
-    public String listOrganizations(Model model) {
-        model.addAttribute("organizations", organizationService.getOrganizations());
-        model.addAttribute("activePage", "organizations");
-        return "organization/organizations";
-    }
-
+    // Λίστα χρηστών οργανισμών (μόνο ενεργοί)
     @GetMapping("/users")
     public String listOrganizationUsers(Model model) {
         model.addAttribute("organizationUsers", organizationService.getOrganizationUsers());
@@ -97,6 +111,8 @@ public class OrganizationController {
     }
 
     // ===== Διαγραφές =====
+
+    // Διαγραφή χρήστη οργανισμού
     @PostMapping("/users/delete/{id}")
     public String deleteOrganizationUser(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         organizationService.deleteOrganizationUser(id);
@@ -104,15 +120,11 @@ public class OrganizationController {
         return "redirect:/organization/users";
     }
 
+    // Διαγραφή οργανισμού
     @PostMapping("/delete/{id}")
     public String deleteOrganization(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         organizationService.deleteOrganization(id);
         redirectAttributes.addFlashAttribute("successMessage", "Organization deleted successfully.");
         return "redirect:/organization/list";
-    }
-
-    @GetMapping("/registration-pending")
-    public String showPendingPage() {
-        return "registration-pending";
     }
 }

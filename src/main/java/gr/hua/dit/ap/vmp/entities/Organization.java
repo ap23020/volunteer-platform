@@ -24,6 +24,11 @@ public class Organization {
     @Column
     private String phone;
 
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private OrganizationStatus status = OrganizationStatus.PENDING_APPROVAL;
+
     @OneToMany(mappedBy = "organization", cascade = {CascadeType.PERSIST, CascadeType.MERGE,
             CascadeType.DETACH, CascadeType.REFRESH})
     private List<OrganizationUser> organizationUsers;
@@ -77,5 +82,13 @@ public class Organization {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public OrganizationStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(OrganizationStatus status) {
+        this.status = status;
     }
 }

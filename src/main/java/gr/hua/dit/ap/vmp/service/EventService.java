@@ -8,7 +8,6 @@ import gr.hua.dit.ap.vmp.repository.ParticipationRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -50,10 +49,37 @@ public class EventService {
         return eventRepository.findById(id).orElse(null);
     }
 
-    // Δημιουργία νέου event
+    // Δημιουργία νέου event – ειδοποιεί ΜΟΝΟ τους admins
     @Transactional
     public void saveEvent(Event event) {
         eventRepository.save(event);
+
+        // Ειδοποίηση προς διαχειριστές (admins) για νέο event που χρειάζεται έγκριση
+        notificationService.createNotificationForAdmins(
+                NotificationType.NEW_EVENT_REQUEST,
+                "New Event Request",
+                "A new event \"" + event.getTitle() + "\" is pending approval.",
+                null,
+                event
+        );
+    }
+
+    // Διαγραφή event με καθαρισμό εξαρτώμενων εγγραφών
+    @Transactional
+    public void deleteEvent(Long id) {
+        Event event = eventRepository.findById(id).orElse(null);
+        if (event != null) {
+            // Διαγραφή ειδοποιήσεων που αναφέρονται σε αυτό το event
+            List<Notification> notifications = notificationRepository.findByRelatedEventId(id);
+            notificationRepository.deleteAll(notifications);
+
+            // Διαγραφή συμμετοχών (οι αξιολογήσεις θα σβηστούν λόγω cascade)
+            List<Participation> participations = participationRepository.findByEventId(id);
+            participationRepository.deleteAll(participations);
+
+            // Διαγραφή του event
+            eventRepository.delete(event);
+        }
     }
 
     // Λίστα εκκρεμών events για admin
@@ -62,7 +88,7 @@ public class EventService {
         return eventRepository.findByStatus(EventStatus.PENDING_APPROVAL);
     }
 
-    // Έγκριση event
+    // Έγκριση event – ειδοποιεί τον οργανισμό
     @Transactional
     public void approveEvent(Long eventId) {
         Event event = eventRepository.findById(eventId).orElse(null);
@@ -70,13 +96,14 @@ public class EventService {
             event.setStatus(EventStatus.APPROVED);
             eventRepository.save(event);
 
+            // Ειδοποίηση προς οργανισμό
             notifyOrganizationUsers(event, NotificationType.EVENT_APPROVED,
                     "Event Approved",
                     "Your event \"" + event.getTitle() + "\" has been approved.");
         }
     }
 
-    // Απόρριψη event με σχόλιο
+    // Απόρριψη event με σχόλιο – ειδοποιεί τον οργανισμό
     @Transactional
     public void rejectEvent(Long eventId, String comment) {
         Event event = eventRepository.findById(eventId).orElse(null);
@@ -110,75 +137,57 @@ public class EventService {
         }
     }
 
+    // Ακύρωση event από οργανισμό – ακυρώνει συμμετοχές και ειδοποιεί εθελοντές + ενεργούς οργανισμούς
     @Transactional
     public void cancelEvent(Long eventId) {
         Event event = eventRepository.findById(eventId).orElse(null);
-        if (event == null || event.getStatus() != EventStatus.APPROVED) {
-            return; // ή throw exception
-        }
+        if (event != null && event.getStatus() == EventStatus.APPROVED) {
+            event.setStatus(EventStatus.CANCELLED);
+            event.setCancelledAt(java.time.LocalDateTime.now());
+            eventRepository.save(event);
 
-        // 1. Αλλαγή κατάστασης event
-        event.setStatus(EventStatus.CANCELLED);
-        event.setCancelledAt(LocalDateTime.now());
-        eventRepository.save(event);
+            // Ακύρωση συμμετοχών
+            List<Participation> participations = participationRepository.findByEventId(eventId);
+            for (Participation p : participations) {
+                ParticipationStatus ps = p.getStatus();
+                if (ps == ParticipationStatus.PENDING_ORG_APPROVAL ||
+                        ps == ParticipationStatus.APPROVED ||
+                        ps == ParticipationStatus.CHECKED_IN) {
+                    p.setStatus(ParticipationStatus.CANCELLED);
+                    p.setCancelledAt(java.time.LocalDateTime.now());
+                    participationRepository.save(p);
 
-        // 2. Ακύρωση μόνο των συμμετοχών του event
-        List<Participation> participations = participationRepository.findByEventId(eventId);
-        for (Participation p : participations) {
-            ParticipationStatus status = p.getStatus();
-            if (status == ParticipationStatus.PENDING_ORG_APPROVAL ||
-                    status == ParticipationStatus.APPROVED ||
-                    status == ParticipationStatus.CHECKED_IN) {
-
-                p.setStatus(ParticipationStatus.CANCELLED);
-                p.setCancelledAt(LocalDateTime.now());
-                participationRepository.save(p);  // Αποθηκεύουμε τη ΣΥΓΚΕΚΡΙΜΕΝΗ συμμετοχή
-
-                // Ειδοποίηση εθελοντή
-                if (p.getVolunteer() != null) {
-                    notificationService.createNotification(
-                            NotificationType.EVENT_CANCELLED,
-                            "Event Cancelled",
-                            "The event \"" + event.getTitle() + "\" has been cancelled by the organizer.",
-                            p.getVolunteer(),
-                            event
-                    );
+                    // Ειδοποίηση εθελοντή
+                    if (p.getVolunteer() != null) {
+                        notificationService.createNotification(
+                                NotificationType.EVENT_CANCELLED,
+                                "Event Cancelled",
+                                "The event \"" + event.getTitle() + "\" has been cancelled by the organizer.",
+                                p.getVolunteer(),
+                                event
+                        );
+                    }
                 }
             }
-        }
 
-        // 3. Ειδοποίηση οργανισμού (ACTIVE users)
-        Organization org = event.getOrganization();
-        if (org != null) {
-            List<OrganizationUser> orgUsers = organizationUserRepository
-                    .findByOrganizationIdAndStatus(org.getId(), UserStatus.ACTIVE);
-            for (OrganizationUser orgUser : orgUsers) {
-                notificationService.createNotification(
-                        NotificationType.EVENT_CANCELLED,
-                        "Event Cancelled",
-                        "Your event \"" + event.getTitle() + "\" has been cancelled.",
-                        orgUser,
-                        event
-                );
+            // Ειδοποίηση ενεργών οργανισμικών χρηστών
+            Organization org = event.getOrganization();
+            if (org != null) {
+                List<OrganizationUser> orgUsers = organizationUserRepository
+                        .findByOrganizationIdAndStatus(org.getId(), UserStatus.ACTIVE);
+                java.util.Set<String> seenEmails = new java.util.HashSet<>();
+                for (OrganizationUser orgUser : orgUsers) {
+                    if (seenEmails.add(orgUser.getEmail())) {
+                        notificationService.createNotification(
+                                NotificationType.EVENT_CANCELLED,
+                                "Event Cancelled",
+                                "Your event \"" + event.getTitle() + "\" has been cancelled.",
+                                orgUser,
+                                event
+                        );
+                    }
+                }
             }
-        }
-    }
-
-    // Διαγραφή event με καθαρισμό εξαρτώμενων εγγραφών
-    @Transactional
-    public void deleteEvent(Long id) {
-        Event event = eventRepository.findById(id).orElse(null);
-        if (event != null) {
-            // 1. Διαγραφή ειδοποιήσεων που αναφέρονται σε αυτό το event
-            List<Notification> notifications = notificationRepository.findByRelatedEventId(id);
-            notificationRepository.deleteAll(notifications);
-
-            // 2. Διαγραφή συμμετοχών (οι αξιολογήσεις θα σβηστούν λόγω cascade)
-            List<Participation> participations = participationRepository.findByEventId(id);
-            participationRepository.deleteAll(participations);
-
-            // 3. Διαγραφή του event
-            eventRepository.delete(event);
         }
     }
 
@@ -186,9 +195,13 @@ public class EventService {
     private void notifyOrganizationUsers(Event event, NotificationType type, String title, String message) {
         Organization org = event.getOrganization();
         if (org != null) {
-            List<OrganizationUser> orgUsers = organizationUserRepository.findByOrganizationId(org.getId());
+            List<OrganizationUser> orgUsers = organizationUserRepository
+                    .findByOrganizationIdAndStatus(org.getId(), UserStatus.ACTIVE);
+            java.util.Set<String> seenEmails = new java.util.HashSet<>();
             for (OrganizationUser orgUser : orgUsers) {
-                notificationService.createNotification(type, title, message, orgUser, event);
+                if (seenEmails.add(orgUser.getEmail())) {
+                    notificationService.createNotification(type, title, message, orgUser, event);
+                }
             }
         }
     }

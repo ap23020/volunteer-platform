@@ -35,7 +35,7 @@ public class EventController {
     @GetMapping("/new")
     public String showEventForm(Model model) {
         model.addAttribute("event", new Event());
-        model.addAttribute("organizations", organizationService.getOrganizations());
+        model.addAttribute("organizations", organizationService.getApprovedOrganizations());
         model.addAttribute("activePage", "events");
         return "event/event-form";
     }
@@ -64,7 +64,7 @@ public class EventController {
             return "redirect:/event/list";
         }
         model.addAttribute("event", event);
-        model.addAttribute("organizations", organizationService.getOrganizations());
+        model.addAttribute("organizations", organizationService.getApprovedOrganizations());
         model.addAttribute("activePage", "events");
         return "event/event-form";
     }

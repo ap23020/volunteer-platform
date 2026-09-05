@@ -189,7 +189,7 @@ public class ParticipationService {
                     List<OrganizationUser> orgUsers = organizationUserRepository
                             .findByOrganizationIdAndStatus(org.getId(), UserStatus.ACTIVE);
 
-                    // Χρήση Set για αποφυγή διπλών ειδοποιήσεων (π.χ. ίδιο email πολλές φορές)
+                    // Χρήση Set για αποφυγή διπλών ειδοποιήσεων
                     Set<String> seenEmails = new HashSet<>();
                     for (OrganizationUser orgUser : orgUsers) {
                         if (seenEmails.add(orgUser.getEmail())) {

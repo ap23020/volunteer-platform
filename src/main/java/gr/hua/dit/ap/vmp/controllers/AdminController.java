@@ -1,7 +1,9 @@
 package gr.hua.dit.ap.vmp.controllers;
 
+import gr.hua.dit.ap.vmp.entities.Organization;
 import gr.hua.dit.ap.vmp.entities.User;
 import gr.hua.dit.ap.vmp.entities.Event;
+import gr.hua.dit.ap.vmp.service.OrganizationService;
 import gr.hua.dit.ap.vmp.service.UserService;
 import gr.hua.dit.ap.vmp.service.EventService;
 import org.springframework.stereotype.Controller;
@@ -15,11 +17,17 @@ public class AdminController {
 
     private final UserService userService;
     private final EventService eventService;
+    private final OrganizationService organizationService;   // <-- νέο πεδίο
 
-    public AdminController(UserService userService, EventService eventService) {
+    public AdminController(UserService userService,
+                           EventService eventService,
+                           OrganizationService organizationService) {
         this.userService = userService;
         this.eventService = eventService;
+        this.organizationService = organizationService;
     }
+
+    // ===== Διαχείριση Χρηστών =====
 
     // Λίστα εκκρεμών χρηστών
     @GetMapping("/users/pending")
@@ -47,6 +55,8 @@ public class AdminController {
         return "redirect:/admin/users/pending";
     }
 
+    // ===== Διαχείριση Εκδηλώσεων =====
+
     // Λίστα εκκρεμών εκδηλώσεων
     @GetMapping("/events/pending")
     public String listPendingEvents(Model model) {
@@ -71,5 +81,33 @@ public class AdminController {
         eventService.rejectEvent(id, comment);
         redirectAttributes.addFlashAttribute("successMessage", "Event rejected.");
         return "redirect:/admin/events/pending";
+    }
+
+    // ===== Διαχείριση Οργανισμών =====
+
+    // Λίστα εκκρεμών οργανισμών
+    @GetMapping("/organizations/pending")
+    public String listPendingOrganizations(Model model) {
+        model.addAttribute("organizations", organizationService.getPendingOrganizations());
+        model.addAttribute("activePage", "adminOrganizations");
+        return "admin/pending-organizations";
+    }
+
+    // Έγκριση οργανισμού
+    @PostMapping("/organizations/approve/{id}")
+    public String approveOrganization(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        organizationService.approveOrganization(id);
+        redirectAttributes.addFlashAttribute("successMessage", "Organization approved successfully.");
+        return "redirect:/admin/organizations/pending";
+    }
+
+    // Απόρριψη οργανισμού (προαιρετικά με αιτιολογία)
+    @PostMapping("/organizations/reject/{id}")
+    public String rejectOrganization(@PathVariable Long id,
+                                     @RequestParam(required = false) String reason,
+                                     RedirectAttributes redirectAttributes) {
+        organizationService.rejectOrganization(id, reason);
+        redirectAttributes.addFlashAttribute("successMessage", "Organization rejected.");
+        return "redirect:/admin/organizations/pending";
     }
 }
