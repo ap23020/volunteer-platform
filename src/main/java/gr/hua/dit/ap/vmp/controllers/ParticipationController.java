@@ -117,8 +117,16 @@ public class ParticipationController {
     // Ακύρωση συμμετοχής
     @PostMapping("/cancel/{id}")
     public String cancelParticipation(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        Participation participation = participationService.getParticipation(id);
+        if (participation == null || participation.getVolunteer() == null) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Participation not found.");
+            return "redirect:/participation/list";
+        }
+
+        Long volunteerId = participation.getVolunteer().getId();
         participationService.cancelParticipation(id);
+
         redirectAttributes.addFlashAttribute("successMessage", "Participation cancelled successfully.");
-        return "redirect:/participation/list";
+        return "redirect:/participation/volunteer/" + volunteerId;
     }
 }

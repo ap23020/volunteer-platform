@@ -9,6 +9,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.time.LocalDateTime;
+
 @Controller
 @RequestMapping("/event")
 public class EventController {
@@ -42,7 +44,13 @@ public class EventController {
     @PostMapping("/new")
     public String createEvent(@ModelAttribute("event") Event event,
                               RedirectAttributes redirectAttributes) {
-        event.setStatus(EventStatus.PENDING_APPROVAL); // προεπιλογή, θα αλλάξει με approval flow
+        // Έλεγχος παρελθοντικής ημερομηνίας
+        if (event.getDateTime() != null && event.getDateTime().isBefore(LocalDateTime.now())) {
+            redirectAttributes.addFlashAttribute("errorMessage", "The event date cannot be in the past.");
+            return "redirect:/event/new";
+        }
+
+        event.setStatus(EventStatus.PENDING_APPROVAL);
         eventService.saveEvent(event);
         redirectAttributes.addFlashAttribute("successMessage", "Event created successfully!");
         return "redirect:/event/list";
@@ -66,6 +74,10 @@ public class EventController {
     public String updateEvent(@PathVariable Long id,
                               @ModelAttribute("event") Event event,
                               RedirectAttributes redirectAttributes) {
+        if (event.getDateTime() != null && event.getDateTime().isBefore(LocalDateTime.now())) {
+            redirectAttributes.addFlashAttribute("errorMessage", "The event date cannot be in the past.");
+            return "redirect:/event/edit/" + id;
+        }
         eventService.updateEvent(id, event);
         redirectAttributes.addFlashAttribute("successMessage", "Event updated and submitted for approval.");
         return "redirect:/event/list";
@@ -76,6 +88,13 @@ public class EventController {
     public String deleteEvent(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         eventService.deleteEvent(id);
         redirectAttributes.addFlashAttribute("successMessage", "Event deleted successfully.");
+        return "redirect:/event/list";
+    }
+
+    @PostMapping("/cancel/{id}")
+    public String cancelEvent(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        eventService.cancelEvent(id);
+        redirectAttributes.addFlashAttribute("successMessage", "Event cancelled successfully.");
         return "redirect:/event/list";
     }
 }

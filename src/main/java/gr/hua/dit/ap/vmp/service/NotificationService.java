@@ -5,6 +5,10 @@ import gr.hua.dit.ap.vmp.repository.NotificationRepository;
 import gr.hua.dit.ap.vmp.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 
@@ -40,6 +44,12 @@ public class NotificationService {
         for (User admin : admins) {
             createNotification(type, title, message, admin, relatedEvent);
         }
+    }
+
+    @Transactional
+    public Page<Notification> getNotificationsPaginated(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return notificationRepository.findAll(pageable);
     }
 }
 

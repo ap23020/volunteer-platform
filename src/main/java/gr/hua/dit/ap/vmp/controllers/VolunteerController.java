@@ -9,6 +9,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.data.domain.Page;
 
 @Controller
 @RequestMapping("/volunteer")
@@ -55,10 +56,17 @@ public class VolunteerController {
 
     // Λίστα ενεργών εθελοντών
     @GetMapping("/list")
-    public String listVolunteers(Model model) {
-        model.addAttribute("volunteers", volunteerService.getVolunteers());
+    public String listVolunteers(@RequestParam(defaultValue = "0") int page,
+                                 @RequestParam(defaultValue = "10") int size,
+                                 Model model) {
+        Page<Volunteer> volunteerPage = volunteerService.getVolunteersPaginated(page, size);
+
+        model.addAttribute("volunteerPage", volunteerPage);
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", volunteerPage.getTotalPages());
+        model.addAttribute("totalItems", volunteerPage.getTotalElements());
         model.addAttribute("activePage", "volunteers");
-        return "volunteer/volunteers";   // βεβαιώσου ότι υπάρχει αυτό το template
+        return "volunteer/volunteers";
     }
 
     // Διαγραφή εθελοντή

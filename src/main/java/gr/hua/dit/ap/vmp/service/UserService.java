@@ -42,7 +42,7 @@ public class UserService {
     }
 
     @Transactional
-    public boolean isEmailTaken(String email) {
+        public boolean isEmailTaken(String email) {
         Optional<User> existing = userRepository.findByEmail(email);
         if (existing.isPresent()) {
             User user = existing.get();

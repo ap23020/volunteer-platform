@@ -10,6 +10,9 @@
     <div class="container py-5">
         <h2 class="mb-4" th:text="${event.id == null ? 'Create New Event' : 'Edit Event'}">Event Form</h2>
 
+        <!-- Μήνυμα λάθους (αν υπάρχει) -->
+        <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+
         <!-- Φόρμα που αλλάζει action ανάλογα αν είναι δημιουργία ή επεξεργασία -->
         <form th:action="${event.id == null} ? @{/event/new} : @{/event/edit/{id}(id=${event.id})}"
               th:object="${event}" method="post">

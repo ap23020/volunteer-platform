@@ -81,14 +81,16 @@ public class OrganizationService {
         // Φόρτωση πλήρους οργανισμού αν υπάρχει
         if (user.getOrganization() != null && user.getOrganization().getId() != null) {
             Organization org = getOrganization(user.getOrganization().getId());
-            if (org != null) {
-                user.setOrganization(org);
+            if (org == null) {
+                throw new IllegalArgumentException("Selected organization not found.");
             }
+            user.setOrganization(org);
+        } else {
+            throw new IllegalArgumentException("Please select an organization.");
         }
 
         organizationUserRepository.save(user);
 
-        // Ειδοποίηση προς διαχειριστές
         notificationService.createNotificationForAdmins(
                 NotificationType.NEW_REGISTRATION,
                 "New Organization User Registration",

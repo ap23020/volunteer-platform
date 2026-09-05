@@ -59,37 +59,26 @@ public class OrganizationController {
                                            RedirectAttributes redirectAttributes,
                                            Model model) {
 
-        // Έλεγχος email
+        // Γενικός έλεγχος μοναδικότητας email
         if (userService.isEmailTaken(organizationUser.getEmail())) {
             model.addAttribute("errorMessage", "A user with this email already exists.");
             model.addAttribute("organizations", organizationService.getOrganizations());
             model.addAttribute("activePage", "register");
-            return "redirect:/organization/registration-pending";
+            return "organization/organization-user-register";
         }
 
-        // Φόρτωση του επιλεγμένου οργανισμού
-        if (organizationUser.getOrganization() != null && organizationUser.getOrganization().getId() != null) {
-            Organization org = organizationService.getOrganization(organizationUser.getOrganization().getId());
-            if (org == null) {
-                model.addAttribute("errorMessage", "Selected organization not found.");
-                model.addAttribute("organizations", organizationService.getOrganizations());
-                model.addAttribute("activePage", "register");
-                return "redirect:/organization/registration-pending";
-            }
-            organizationUser.setOrganization(org);
-        } else {
-            model.addAttribute("errorMessage", "Please select an organization.");
+        try {
+            organizationUser.setRole(Role.ORGANIZATION);
+            organizationUser.setStatus(UserStatus.PENDING_APPROVAL);
+            organizationService.saveOrganizationUser(organizationUser);
+            redirectAttributes.addFlashAttribute("successMessage", "Registration submitted! Awaiting admin approval.");
+            return "redirect:/registration-pending";
+        } catch (IllegalArgumentException e) {
+            model.addAttribute("errorMessage", e.getMessage());
             model.addAttribute("organizations", organizationService.getOrganizations());
             model.addAttribute("activePage", "register");
-            return "redirect:/organization/registration-pending";
+            return "organization/organization-user-register";
         }
-
-        organizationUser.setRole(Role.ORGANIZATION);
-        organizationUser.setStatus(UserStatus.PENDING_APPROVAL);
-        organizationService.saveOrganizationUser(organizationUser);
-
-        redirectAttributes.addFlashAttribute("successMessage", "Registration submitted! Awaiting admin approval.");
-        return "redirect:/registration-pending";
     }
 
     // ===== Λίστες =====

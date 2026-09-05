@@ -13,7 +13,9 @@
             <a th:href="@{/event/new}" class="btn btn-primary">Create Event</a>
         </div>
 
+        <!-- Εμφάνιση μηνυμάτων επιτυχίας/λάθους -->
         <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+        <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
 
         <table class="table table-striped table-bordered">
             <thead>
@@ -42,13 +44,24 @@
                 <td th:text="${event.organization.name}"></td>
                 <td>
                     <div class="d-flex gap-2">
+                        <!-- Edit – μόνο για απορριφθείσες εκδηλώσεις -->
                         <a th:if="${event.status.name() == 'REJECTED'}"
                            th:href="@{/event/edit/{id}(id=${event.id})}"
                            class="btn btn-warning btn-sm">Edit</a>
 
+                        <!-- View Participations -->
                         <a th:href="@{/participation/event/{id}(id=${event.id})}"
-                           class="btn btn-info btn-sm">View Participations</a>
+                           class="btn btn-info btn-sm">View</a>
 
+                        <!-- Cancel Event – μόνο για εγκεκριμένες εκδηλώσεις -->
+                        <form th:if="${event.status.name() == 'APPROVED'}"
+                              th:action="@{/event/cancel/{id}(id=${event.id})}"
+                              method="post"
+                              onsubmit="return confirm('Cancel this event? All participants will be notified.');">
+                            <button type="submit" class="btn btn-warning btn-sm">Cancel</button>
+                        </form>
+
+                        <!-- Delete – πάντα διαθέσιμο -->
                         <form th:action="@{/event/delete/{id}(id=${event.id})}"
                               method="post"
                               onsubmit="return confirm('Delete this event?');">

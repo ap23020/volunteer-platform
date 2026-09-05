@@ -9,7 +9,9 @@ import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,6 +34,8 @@ public class ParticipationService {
         this.organizationUserRepository = organizationUserRepository;
         this.notificationService = notificationService;
     }
+
+    // ===== Γενικές μέθοδοι ανάκτησης =====
 
     @Transactional
     public List<Participation> getParticipations() {
@@ -66,6 +70,8 @@ public class ParticipationService {
         return participationRepository.findById(id).orElse(null);
     }
 
+    // ===== Δημιουργία συμμετοχής =====
+
     @Transactional
     public String createParticipation(Long volunteerId, Long eventId) {
         Volunteer volunteer = volunteerRepository.findById(volunteerId).orElse(null);
@@ -74,6 +80,7 @@ public class ParticipationService {
             return "Volunteer or Event not found.";
         }
 
+        // Έλεγχος ότι η εκδήλωση είναι εγκεκριμένη
         if (event.getStatus() != EventStatus.APPROVED) {
             return "You can only apply to approved events.";
         }
@@ -88,18 +95,21 @@ public class ParticipationService {
             return "You already have an active application for this event.";
         }
 
+        // Έλεγχος διαθέσιμων θέσεων
         int currentRegistrations = participationRepository.findByEventId(eventId).size();
         if (event.getMaxParticipants() != null && currentRegistrations >= event.getMaxParticipants()) {
             return "The event is full.";
         }
 
+        // Δημιουργία και αποθήκευση συμμετοχής
         Participation participation = new Participation(volunteer, event);
         participationRepository.save(participation);
 
-        // Ειδοποίηση οργανισμού
+        // Ειδοποίηση οργανισμού: μόνο οι ACTIVE χρήστες του οργανισμού
         Organization org = event.getOrganization();
         if (org != null) {
-            List<OrganizationUser> orgUsers = organizationUserRepository.findByOrganizationId(org.getId());
+            List<OrganizationUser> orgUsers = organizationUserRepository
+                    .findByOrganizationIdAndStatus(org.getId(), UserStatus.ACTIVE);
             for (OrganizationUser orgUser : orgUsers) {
                 notificationService.createNotification(
                         NotificationType.NEW_REGISTRATION,
@@ -113,6 +123,8 @@ public class ParticipationService {
         return null;
     }
 
+    // ===== Έγκριση / Απόρριψη / Check-in / Ακύρωση =====
+
     @Transactional
     public void approveParticipation(Long participationId) {
         Participation participation = participationRepository.findById(participationId).orElse(null);
@@ -121,6 +133,7 @@ public class ParticipationService {
             participation.setApprovedAt(LocalDateTime.now());
             participationRepository.save(participation);
 
+            // Ειδοποίηση προς τον εθελοντή
             notificationService.createNotification(
                     NotificationType.REGISTRATION_APPROVED,
                     "Participation Approved",
@@ -139,6 +152,7 @@ public class ParticipationService {
             participation.setRejectionReason(reason);
             participationRepository.save(participation);
 
+            // Ειδοποίηση προς τον εθελοντή
             notificationService.createNotification(
                     NotificationType.REGISTRATION_REJECTED,
                     "Participation Rejected",
@@ -162,15 +176,38 @@ public class ParticipationService {
     @Transactional
     public void cancelParticipation(Long participationId) {
         Participation participation = participationRepository.findById(participationId).orElse(null);
-        if (participation != null) {
-            ParticipationStatus status = participation.getStatus();
-            if (status == ParticipationStatus.PENDING_ORG_APPROVAL || status == ParticipationStatus.APPROVED) {
-                participation.setStatus(ParticipationStatus.CANCELLED);
-                participation.setCancelledAt(LocalDateTime.now());
-                participationRepository.save(participation);
+        if (participation != null && participation.getStatus() == ParticipationStatus.APPROVED) {
+            participation.setStatus(ParticipationStatus.CANCELLED);
+            participation.setCancelledAt(LocalDateTime.now());
+            participationRepository.save(participation);
+
+            // Ειδοποίηση οργανισμού: μόνο οι ACTIVE χρήστες
+            Event event = participation.getEvent();
+            if (event != null) {
+                Organization org = event.getOrganization();
+                if (org != null) {
+                    List<OrganizationUser> orgUsers = organizationUserRepository
+                            .findByOrganizationIdAndStatus(org.getId(), UserStatus.ACTIVE);
+
+                    // Χρήση Set για αποφυγή διπλών ειδοποιήσεων (π.χ. ίδιο email πολλές φορές)
+                    Set<String> seenEmails = new HashSet<>();
+                    for (OrganizationUser orgUser : orgUsers) {
+                        if (seenEmails.add(orgUser.getEmail())) {
+                            notificationService.createNotification(
+                                    NotificationType.REGISTRATION_CANCELLED,
+                                    "Participation Cancelled",
+                                    "A volunteer cancelled their approved participation in event \"" + event.getTitle() + "\".",
+                                    orgUser,
+                                    event
+                            );
+                        }
+                    }
+                }
             }
         }
     }
+
+    // ===== Βοηθητικές μέθοδοι =====
 
     @Transactional
     public List<Participation> getCheckinsWithoutReview() {

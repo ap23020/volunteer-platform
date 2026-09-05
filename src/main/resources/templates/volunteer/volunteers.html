@@ -3,7 +3,7 @@
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{page_layout/layout}">
 <head>
-    <title>Λίστα Εθελοντών</title>
+    <title>Volunteers</title>
 </head>
 <body>
 <div layout:fragment="main-content" class="d-flex flex-column h-100">
@@ -23,7 +23,7 @@
             </tr>
             </thead>
             <tbody>
-            <tr th:each="volunteer : ${volunteers}">
+            <tr th:each="volunteer : ${volunteerPage.content}">
                 <td th:text="${volunteer.id}"></td>
                 <td th:text="${volunteer.firstName}"></td>
                 <td th:text="${volunteer.lastName}"></td>
@@ -46,9 +46,27 @@
             </tbody>
         </table>
 
-        <div th:if="${#lists.isEmpty(volunteers)}">
+        <!-- Μήνυμα όταν δεν υπάρχουν εθελοντές -->
+        <div th:if="${volunteerPage.totalElements == 0}" class="mt-3">
             <p>No volunteers yet.</p>
         </div>
+
+        <!-- Pagination controls – εμφανίζονται μόνο αν υπάρχουν πάνω από μία σελίδες -->
+        <nav th:if="${totalPages > 1}" aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                    <a class="page-link" th:href="@{/volunteer/list(page=${currentPage - 1}, size=10)}">Previous</a>
+                </li>
+
+                <li class="page-item disabled">
+                    <span class="page-link" th:text="'Page ' + (${currentPage + 1}) + ' of ' + ${totalPages}"></span>
+                </li>
+
+                <li class="page-item" th:classappend="${currentPage + 1 >= totalPages} ? 'disabled'">
+                    <a class="page-link" th:href="@{/volunteer/list(page=${currentPage + 1}, size=10)}">Next</a>
+                </li>
+            </ul>
+        </nav>
     </div>
 </div>
 </body>
