@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -20,28 +21,29 @@ public class VolunteerService {
     private final ParticipationRepository participationRepository;
     private final NotificationRepository notificationRepository;
     private final ReviewRepository reviewRepository;
+    private final BCryptPasswordEncoder passwordEncoder;   // <-- προσθήκη
 
     public VolunteerService(VolunteerRepository volunteerRepository,
                             NotificationService notificationService,
                             ParticipationRepository participationRepository,
                             NotificationRepository notificationRepository,
-                            ReviewRepository reviewRepository) {
+                            ReviewRepository reviewRepository,
+                            BCryptPasswordEncoder passwordEncoder) {   // <-- προσθήκη
         this.volunteerRepository = volunteerRepository;
         this.notificationService = notificationService;
         this.participationRepository = participationRepository;
         this.notificationRepository = notificationRepository;
         this.reviewRepository = reviewRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     // ===== Λίστες & Αναζήτηση =====
 
-    // Επιστρέφει όλους τους ενεργούς εθελοντές
     @Transactional
     public List<Volunteer> getVolunteers() {
         return volunteerRepository.findByStatus(UserStatus.ACTIVE);
     }
 
-    // Επιστρέφει σελίδα ενεργών εθελοντών (pagination)
     @Transactional
     public Page<Volunteer> getVolunteersPaginated(int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("lastName").ascending());
@@ -57,6 +59,11 @@ public class VolunteerService {
 
     @Transactional
     public void saveVolunteer(Volunteer volunteer) {
+        // Κρυπτογράφηση κωδικού πρόσβασης πριν την αποθήκευση
+        if (volunteer.getPassword() != null && !volunteer.getPassword().isEmpty()) {
+            volunteer.setPassword(passwordEncoder.encode(volunteer.getPassword()));
+        }
+
         volunteerRepository.save(volunteer);
 
         // Ειδοποίηση προς διαχειριστές
@@ -81,7 +88,6 @@ public class VolunteerService {
         Volunteer volunteer = volunteerRepository.findById(id).orElse(null);
         if (volunteer == null) return;
 
-        // 1. Διαγραφή συμμετοχών και των αξιολογήσεών τους
         List<Participation> participations = participationRepository.findByVolunteerId(id);
         for (Participation p : participations) {
             if (p.getReview() != null) {
@@ -90,11 +96,9 @@ public class VolunteerService {
             participationRepository.delete(p);
         }
 
-        // 2. Διαγραφή ειδοποιήσεων όπου παραλήπτης είναι ο εθελοντής
         List<Notification> notifications = notificationRepository.findByRecipientId(id);
         notificationRepository.deleteAll(notifications);
 
-        // 3. Διαγραφή του εθελοντή
         volunteerRepository.delete(volunteer);
     }
 }

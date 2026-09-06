@@ -5,6 +5,7 @@ import gr.hua.dit.ap.vmp.entities.User;
 import gr.hua.dit.ap.vmp.entities.UserStatus;
 import gr.hua.dit.ap.vmp.repository.UserRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,10 +16,14 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final BCryptPasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository, NotificationService notificationService) {
+    public UserService(UserRepository userRepository,
+                       NotificationService notificationService,
+                       BCryptPasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.notificationService = notificationService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional
@@ -33,6 +38,10 @@ public class UserService {
 
     @Transactional
     public void saveUser(User user) {
+        // Κρυπτογράφηση κωδικού πριν την αποθήκευση
+        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+        }
         userRepository.save(user);
     }
 
@@ -42,20 +51,8 @@ public class UserService {
     }
 
     @Transactional
-        public boolean isEmailTaken(String email) {
-        Optional<User> existing = userRepository.findByEmail(email);
-        if (existing.isPresent()) {
-            User user = existing.get();
-            UserStatus status = user.getStatus();
-            if (status == UserStatus.ACTIVE || status == UserStatus.PENDING_APPROVAL) {
-                return true;
-            } else {
-                user.setEmail(email + "_old_" + user.getId());
-                userRepository.save(user);
-                return false;
-            }
-        }
-        return false;
+    public boolean isEmailTaken(String email) {
+        return userRepository.findByEmail(email).isPresent();
     }
 
     @Transactional

@@ -1,14 +1,9 @@
 package gr.hua.dit.ap.vmp.service;
 
 import gr.hua.dit.ap.vmp.entities.*;
-import gr.hua.dit.ap.vmp.repository.EventRepository;
-import gr.hua.dit.ap.vmp.repository.NotificationRepository;
-import gr.hua.dit.ap.vmp.repository.OrganizationRepository;
-import gr.hua.dit.ap.vmp.repository.OrganizationUserRepository;
-import gr.hua.dit.ap.vmp.repository.ParticipationRepository;
-import gr.hua.dit.ap.vmp.repository.ReviewRepository;
-import gr.hua.dit.ap.vmp.repository.UserRepository;
+import gr.hua.dit.ap.vmp.repository.*;
 import jakarta.transaction.Transactional;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
@@ -19,15 +14,15 @@ import java.util.Set;
 @Service
 public class OrganizationService {
 
-    // Repositories που χρησιμοποιούμε
     private final OrganizationUserRepository organizationUserRepository;
     private final OrganizationRepository organizationRepository;
     private final NotificationService notificationService;
-    private final UserRepository userRepository;                   // Για εύρεση admins
-    private final EventRepository eventRepository;                 // Για διαγραφή events οργανισμού
-    private final ParticipationRepository participationRepository; // Για διαγραφή συμμετοχών
-    private final ReviewRepository reviewRepository;               // Για διαγραφή αξιολογήσεων
-    private final NotificationRepository notificationRepository;   // Για διαγραφή ειδοποιήσεων
+    private final UserRepository userRepository;
+    private final EventRepository eventRepository;
+    private final ParticipationRepository participationRepository;
+    private final ReviewRepository reviewRepository;
+    private final NotificationRepository notificationRepository;
+    private final BCryptPasswordEncoder passwordEncoder;   // <-- προσθήκη
 
     public OrganizationService(OrganizationUserRepository organizationUserRepository,
                                OrganizationRepository organizationRepository,
@@ -36,7 +31,8 @@ public class OrganizationService {
                                EventRepository eventRepository,
                                ParticipationRepository participationRepository,
                                ReviewRepository reviewRepository,
-                               NotificationRepository notificationRepository) {
+                               NotificationRepository notificationRepository,
+                               BCryptPasswordEncoder passwordEncoder) {   // <-- προσθήκη
         this.organizationUserRepository = organizationUserRepository;
         this.organizationRepository = organizationRepository;
         this.notificationService = notificationService;
@@ -45,64 +41,53 @@ public class OrganizationService {
         this.participationRepository = participationRepository;
         this.reviewRepository = reviewRepository;
         this.notificationRepository = notificationRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     // ===== Οργανισμοί =====
 
-    // Επιστρέφει ΟΛΟΥΣ τους οργανισμούς (για admin ή γενική λίστα)
     @Transactional
     public List<Organization> getAllOrganizations() {
         return organizationRepository.findAll();
     }
 
-    // Επιστρέφει μόνο τους ΕΓΚΕΚΡΙΜΕΝΟΥΣ οργανισμούς (για dropdowns)
     @Transactional
     public List<Organization> getApprovedOrganizations() {
         return organizationRepository.findByStatus(OrganizationStatus.APPROVED);
     }
 
-    // Επιστρέφει οργανισμούς σε αναμονή έγκρισης (για admin)
     @Transactional
     public List<Organization> getPendingOrganizations() {
         return organizationRepository.findByStatus(OrganizationStatus.PENDING_APPROVAL);
     }
 
-    // Βρίσκει οργανισμό με id
     @Transactional
     public Organization getOrganization(Long id) {
         return organizationRepository.findById(id).orElse(null);
     }
 
-    // Ελέγχει αν υπάρχει οργανισμός με συγκεκριμένο όνομα
     @Transactional
     public boolean organizationNameExists(String name) {
         return organizationRepository.findByName(name).isPresent();
     }
 
-    // Αποθήκευση νέου οργανισμού (κατά την εγγραφή)
-    // Θέτουμε κατάσταση PENDING_APPROVAL και ειδοποιούμε τους admins
     @Transactional
     public void saveOrganization(Organization organization) {
-        // Έλεγχος ονόματος
         if (organization.getName() == null || organization.getName().trim().isEmpty()) {
             throw new IllegalArgumentException("Organization name is required.");
         }
 
-        // Καθαρισμός κενών προαιρετικών πεδίων
         organization.setDescription(clean(organization.getDescription()));
         organization.setWebsite(clean(organization.getWebsite()));
         organization.setPhone(clean(organization.getPhone()));
 
-        // Μοναδικότητα ονόματος
         if (organizationNameExists(organization.getName())) {
             throw new IllegalArgumentException("Organization with this name already exists.");
         }
 
-        // Ο νέος οργανισμός ξεκινάει σε κατάσταση αναμονής
         organization.setStatus(OrganizationStatus.PENDING_APPROVAL);
         organizationRepository.save(organization);
 
-        // Ειδοποίηση προς τους διαχειριστές
         notifyAdmins(
                 NotificationType.NEW_ORGANIZATION,
                 "New Organization Registration",
@@ -112,7 +97,6 @@ public class OrganizationService {
         );
     }
 
-    // Έγκριση οργανισμού από admin
     @Transactional
     public void approveOrganization(Long organizationId) {
         Organization org = getOrganization(organizationId);
@@ -120,7 +104,6 @@ public class OrganizationService {
             org.setStatus(OrganizationStatus.APPROVED);
             organizationRepository.save(org);
 
-            // Ειδοποίηση προς τους admins (για ιστορικό)
             notifyAdmins(
                     NotificationType.ORGANIZATION_APPROVED,
                     "Organization Approved",
@@ -131,7 +114,6 @@ public class OrganizationService {
         }
     }
 
-    // Απόρριψη οργανισμού από admin (προαιρετικά με αιτιολογία)
     @Transactional
     public void rejectOrganization(Long organizationId, String reason) {
         Organization org = getOrganization(organizationId);
@@ -151,7 +133,6 @@ public class OrganizationService {
 
     // ===== Χρήστες Οργανισμών =====
 
-    // Επιστρέφει μόνο ενεργούς χρήστες οργανισμών (για δημόσια λίστα)
     @Transactional
     public List<OrganizationUser> getOrganizationUsers() {
         return organizationUserRepository.findByStatus(UserStatus.ACTIVE);
@@ -162,16 +143,18 @@ public class OrganizationService {
         return organizationUserRepository.findById(id).orElse(null);
     }
 
-    // Αποθήκευση χρήστη οργανισμού (εγγραφή)
     @Transactional
     public void saveOrganizationUser(OrganizationUser user) {
-        // Φόρτωση πλήρους οργανισμού αν υπάρχει
+        // Κρυπτογράφηση κωδικού πρόσβασης πριν την αποθήκευση
+        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+        }
+
         if (user.getOrganization() != null && user.getOrganization().getId() != null) {
             Organization org = getOrganization(user.getOrganization().getId());
             if (org == null) {
                 throw new IllegalArgumentException("Selected organization not found.");
             }
-            // Επιτρέπουμε εγγραφή μόνο σε εγκεκριμένους οργανισμούς
             if (org.getStatus() != OrganizationStatus.APPROVED) {
                 throw new IllegalArgumentException("You can only join an approved organization.");
             }
@@ -180,14 +163,12 @@ public class OrganizationService {
             throw new IllegalArgumentException("Please select an organization.");
         }
 
-        // Έλεγχος μοναδικότητας email σε όλη την πλατφόρμα
         if (userRepository.findByEmail(user.getEmail()).isPresent()) {
             throw new IllegalArgumentException("A user with this email already exists.");
         }
 
         organizationUserRepository.save(user);
 
-        // Ειδοποίηση προς διαχειριστές
         notifyAdmins(
                 NotificationType.NEW_REGISTRATION,
                 "New Organization User Registration",
@@ -197,27 +178,22 @@ public class OrganizationService {
         );
     }
 
-    // Διαγραφή χρήστη οργανισμού (καθαρίζει ειδοποιήσεις)
     @Transactional
     public void deleteOrganizationUser(Long id) {
         OrganizationUser user = organizationUserRepository.findById(id).orElse(null);
         if (user == null) return;
 
-        // Διαγραφή ειδοποιήσεων όπου παραλήπτης είναι ο χρήστης
         List<Notification> notifications = notificationRepository.findByRecipientId(id);
         notificationRepository.deleteAll(notifications);
 
-        // Διαγραφή του χρήστη
         organizationUserRepository.delete(user);
     }
 
-    // Διαγραφή οργανισμού (καθαρίζει χρήστες, events, participations, reviews, notifications)
     @Transactional
     public void deleteOrganization(Long organizationId) {
         Organization org = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new RuntimeException("Organization not found"));
 
-        // 1. Διαγραφή χρηστών οργανισμού και των ειδοποιήσεών τους
         List<OrganizationUser> users = organizationUserRepository.findByOrganizationId(organizationId);
         for (OrganizationUser user : users) {
             List<Notification> userNotifications = notificationRepository.findByRecipientId(user.getId());
@@ -225,14 +201,11 @@ public class OrganizationService {
             organizationUserRepository.delete(user);
         }
 
-        // 2. Διαγραφή events και των εξαρτώμενων τους
         List<Event> events = eventRepository.findByOrganizationId(organizationId);
         for (Event event : events) {
-            // Διαγραφή ειδοποιήσεων που αναφέρονται στο event
             List<Notification> eventNotifications = notificationRepository.findByRelatedEventId(event.getId());
             notificationRepository.deleteAll(eventNotifications);
 
-            // Διαγραφή συμμετοχών και reviews
             List<Participation> participations = participationRepository.findByEventId(event.getId());
             for (Participation p : participations) {
                 if (p.getReview() != null) {
@@ -240,21 +213,14 @@ public class OrganizationService {
                 }
                 participationRepository.delete(p);
             }
-
             eventRepository.delete(event);
         }
 
-        // 3. Διαγραφή ειδοποιήσεων που αναφέρονται στον ίδιο τον οργανισμό (αν υπάρχουν)
-        // Στην παρούσα υλοποίηση δεν έχουμε ειδοποιήσεις απευθείας σε οργανισμό,
-        // αλλά μπορεί να προστεθεί μελλοντικά.
-
-        // 4. Διαγραφή οργανισμού
         organizationRepository.delete(org);
     }
 
     // ===== Βοηθητικές μέθοδοι =====
 
-    // Ειδοποιεί όλους τους χρήστες με ρόλο ADMIN
     private void notifyAdmins(NotificationType type, String title, String message, User relatedUser, Event relatedEvent) {
         List<User> admins = userRepository.findByRole(Role.ADMIN);
         for (User admin : admins) {
@@ -262,7 +228,6 @@ public class OrganizationService {
         }
     }
 
-    // Μετατρέπει κενά strings σε null, ώστε να αποθηκεύονται σωστά
     private String clean(String value) {
         if (value != null && value.trim().isEmpty()) {
             return null;

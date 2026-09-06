@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
 <header th:fragment="header">
     <div class="d-flex justify-content-between align-items-center w-100">
@@ -7,43 +8,70 @@
             <h3 class="mb-0">Volunteer Platform</h3>
         </a>
         <nav class="nav nav-masthead">
+            <!-- Home -->
             <a class="nav-link fw-bold py-1 px-0"
                th:classappend="${activePage == 'home' ? 'active' : ''}"
                th:href="@{/}">Home</a>
-            <a class="nav-link fw-bold py-1 px-0"
-               th:classappend="${activePage == 'register' ? 'active' : ''}"
-               th:href="@{/register}">Register</a>
-            <a class="nav-link fw-bold py-1 px-0"
-               th:classappend="${activePage == 'volunteers' ? 'active' : ''}"
-               th:href="@{/volunteer/list}">Volunteers</a>
-            <a class="nav-link fw-bold py-1 px-0"
-               th:classappend="${activePage == 'organizations' ? 'active' : ''}"
-               th:href="@{/organization/list}">Organizations</a>
-            <a class="nav-link fw-bold py-1 px-0"
-               th:classappend="${activePage == 'organizationUsers' ? 'active' : ''}"
-               th:href="@{/organization/users}">Org Users</a>
-            <a class="nav-link fw-bold py-1 px-0"
-               th:classappend="${activePage == 'events' ? 'active' : ''}"
-               th:href="@{/event/list}">Events</a>
-            <a class="nav-link fw-bold py-1 px-0"
-               th:classappend="${activePage == 'participation' ? 'active' : ''}"
-               th:href="@{/participation/list}">Participations</a>
-            <a class="nav-link fw-bold py-1 px-0"
-               th:classappend="${activePage == 'reviews' ? 'active' : ''}"
-               th:href="@{/review/list}">Reviews</a>
-            <a class="nav-link fw-bold py-1 px-0"
+
+            <!-- Pending Users (ADMIN) -->
+            <a sec:authorize="hasRole('ROLE_ADMIN')"
+               class="nav-link fw-bold py-1 px-0"
                th:classappend="${activePage == 'adminUsers' ? 'active' : ''}"
                th:href="@{/admin/users/pending}">Pending Users</a>
-            <a class="nav-link fw-bold py-1 px-0"
-                th:classappend="${activePage == 'adminEvents' ? 'active' : ''}"
-                th:href="@{/admin/events/pending}">Pending Events</a>
-            <a class="nav-link fw-bold py-1 px-0"
+
+            <!-- Pending Events (ADMIN) -->
+            <a sec:authorize="hasRole('ROLE_ADMIN')"
+               class="nav-link fw-bold py-1 px-0"
+               th:classappend="${activePage == 'adminEvents' ? 'active' : ''}"
+               th:href="@{/admin/events/pending}">Pending Events</a>
+
+            <!-- Pending Organizations (ADMIN) -->
+            <a sec:authorize="hasRole('ROLE_ADMIN')"
+               class="nav-link fw-bold py-1 px-0"
                th:classappend="${activePage == 'adminOrganizations' ? 'active' : ''}"
                th:href="@{/admin/organizations/pending}">Pending Organizations</a>
-            <a class="nav-link fw-bold py-1 px-0"
+
+            <!-- Events (VOLUNTEER, ORGANIZATION, ADMIN) -->
+            <a sec:authorize="hasAnyRole('ROLE_VOLUNTEER','ROLE_ORGANIZATION','ROLE_ADMIN')"
+               class="nav-link fw-bold py-1 px-0"
+               th:classappend="${activePage == 'events' ? 'active' : ''}"
+               th:href="@{/event/list}">Events</a>
+
+            <!-- Participations (VOLUNTEER, ORGANIZATION, ADMIN) -->
+            <a sec:authorize="hasAnyRole('ROLE_VOLUNTEER','ROLE_ORGANIZATION','ROLE_ADMIN')"
+               class="nav-link fw-bold py-1 px-0"
+               th:classappend="${activePage == 'participation' ? 'active' : ''}"
+               th:href="@{/participation/list}">Participations</a>
+
+            <!-- Organizations (ORGANIZATION, ADMIN) -->
+            <a sec:authorize="hasAnyRole('ROLE_ORGANIZATION','ROLE_ADMIN')"
+               class="nav-link fw-bold py-1 px-0"
+               th:classappend="${activePage == 'organizations' ? 'active' : ''}"
+               th:href="@{/organization/list}">Organizations</a>
+
+            <!-- Notifications (όλοι οι συνδεδεμένοι) -->
+            <a sec:authorize="isAuthenticated()"
+               class="nav-link fw-bold py-1 px-0"
                th:classappend="${activePage == 'notifications' ? 'active' : ''}"
                th:href="@{/notifications/list}">Notifications</a>
 
+            <!-- Login / Register (μη συνδεδεμένοι) -->
+            <a sec:authorize="!isAuthenticated()"
+               class="nav-link fw-bold py-1 px-0"
+               th:href="@{/login}">Login</a>
+
+            <a sec:authorize="!isAuthenticated()"
+               class="nav-link fw-bold py-1 px-0"
+               th:href="@{/register}">Register</a>
+
+            <!-- Logout (συνδεδεμένοι) -->
+            <form sec:authorize="isAuthenticated()"
+                  th:action="@{/logout}" method="post" class="d-inline ms-2">
+                <button type="submit"
+                        class="btn btn-outline-light btn-sm fw-bold px-3 py-1">
+                    Logout
+                </button>
+            </form>
         </nav>
     </div>
 </header>
