@@ -24,7 +24,7 @@ public class AdminInitializer implements CommandLineRunner {
         // Δημιουργία ενός προεπιλεγμένου admin αν δεν υπάρχει ήδη κάποιος
         if (userRepository.findByRole(Role.ADMIN).isEmpty()) {
             Admin admin = new Admin();
-            admin.setEmail("admin@volunteer.gr");
+            admin.setEmail("admin@vmp.gr");
             admin.setPassword(passwordEncoder.encode("admin123"));   // κρυπτογράφηση
             admin.setPhone("2100000000");
             admin.setRole(Role.ADMIN);

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       layout:decorate="~{page_layout/layout}">
 <head>
     <title>Participations</title>
@@ -61,18 +62,32 @@
                 <td th:text="${p.createdAt != null ? #temporals.format(p.createdAt, 'dd/MM/yyyy HH:mm') : '-'}"></td>
                 <td>
                     <div class="d-flex gap-2">
-                        <form th:if="${p.status == T(gr.hua.dit.ap.vmp.entities.ParticipationStatus).PENDING_ORG_APPROVAL}"
-                              th:action="@{/participation/approve/{id}(id=${p.id})}" method="post">
-                            <button type="submit" class="btn btn-success btn-sm">Approve</button>
-                        </form>
-                        <form th:if="${p.status == T(gr.hua.dit.ap.vmp.entities.ParticipationStatus).PENDING_ORG_APPROVAL}"
-                              th:action="@{/participation/reject/{id}(id=${p.id})}" method="post">
-                            <button type="submit" class="btn btn-danger btn-sm">Reject</button>
-                        </form>
-                        <form th:if="${p.status == T(gr.hua.dit.ap.vmp.entities.ParticipationStatus).APPROVED}"
-                              th:action="@{/participation/checkin/{id}(id=${p.id})}" method="post">
-                            <button type="submit" class="btn btn-info btn-sm">Check-in</button>
-                        </form>
+                        <!-- Ενέργειες για ORGANIZATION και ADMIN -->
+                        <div sec:authorize="hasAnyRole('ROLE_ORGANIZATION','ROLE_ADMIN')">
+                            <form th:if="${p.status == T(gr.hua.dit.ap.vmp.entities.ParticipationStatus).PENDING_ORG_APPROVAL}"
+                                  th:action="@{/participation/approve/{id}(id=${p.id})}" method="post">
+                                <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                            </form>
+
+                            <form th:if="${p.status == T(gr.hua.dit.ap.vmp.entities.ParticipationStatus).PENDING_ORG_APPROVAL}"
+                                  th:action="@{/participation/reject/{id}(id=${p.id})}" method="post">
+                                <button type="submit" class="btn btn-danger btn-sm">Reject</button>
+                            </form>
+
+                            <form th:if="${p.status == T(gr.hua.dit.ap.vmp.entities.ParticipationStatus).APPROVED}"
+                                  th:action="@{/participation/checkin/{id}(id=${p.id})}" method="post">
+                                <button type="submit" class="btn btn-info btn-sm">Check-in</button>
+                            </form>
+                        </div>
+
+                        <!-- Ενέργειες για VOLUNTEER (π.χ. Cancel) -->
+                        <div sec:authorize="hasRole('ROLE_VOLUNTEER')">
+                            <form th:if="${p.status == T(gr.hua.dit.ap.vmp.entities.ParticipationStatus).APPROVED}"
+                                  th:action="@{/participation/cancel/{id}(id=${p.id})}" method="post"
+                                  onsubmit="return confirm('Cancel this participation?');">
+                                <button type="submit" class="btn btn-warning btn-sm">Cancel</button>
+                            </form>
+                        </div>
                     </div>
                 </td>
             </tr>

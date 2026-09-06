@@ -1,19 +1,27 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
+<html layout:decorate="~{page_layout/layout}"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-      layout:decorate="~{page_layout/layout}">
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      xmlns:th="http://www.thymeleaf.org">
 <head>
     <title>Home</title>
 </head>
 <body>
-<div layout:fragment="main-content">
+<div layout:fragment="main-content" class="d-flex flex-column h-100">
     <div class="d-flex flex-column align-items-center justify-content-center h-100">
         <h1>Welcome to the Volunteer Platform</h1>
         <p class="lead">Find volunteer activities or create your own.</p>
-        <p class="lead">
+
+        <!-- Εμφανίζεται μόνο σε ΜΗ συνδεδεμένους χρήστες -->
+        <div sec:authorize="!isAuthenticated()" class="lead">
             <a th:href="@{/register}" class="btn btn-lg btn-light fw-bold border-white bg-white">Get Started</a>
-        </p>
-    </div>
+        </div>
+
+        <!-- Εμφανίζεται μόνο σε συνδεδεμένους χρήστες -->
+        <div sec:authorize="isAuthenticated()" class="lead">
+            <p class="text-white">Welcome back!</p>
+            <a th:href="@{/notifications/list}" class="btn btn-outline-light">Notifications</a>
+        </div>
 </div>
 </body>
 </html>

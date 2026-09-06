@@ -223,4 +223,14 @@ public class ParticipationService {
                 .filter(p -> p.getStatus() != ParticipationStatus.REJECTED)
                 .collect(Collectors.toList());
     }
+
+    // Ελέγχει αν ο εθελοντής έχει ενεργή συμμετοχή στο event
+    @Transactional
+    public boolean hasActiveApplication(Long eventId, Long volunteerId) {
+        return participationRepository.findByVolunteerIdAndEventId(volunteerId, eventId)
+                .stream()
+                .anyMatch(p -> p.getStatus() == ParticipationStatus.PENDING_ORG_APPROVAL
+                        || p.getStatus() == ParticipationStatus.APPROVED
+                        || p.getStatus() == ParticipationStatus.CHECKED_IN);
+    }
 }

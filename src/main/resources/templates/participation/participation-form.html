@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{page_layout/layout}">
 <head>
@@ -8,15 +9,14 @@
 <body>
 <div layout:fragment="main-content" class="d-flex flex-column h-100">
     <div class="container py-5">
-        <h2 class="mb-4">Apply for an Event</h2>
+        <h2 class="mb-4">Apply for Event</h2>
 
-        <!-- Μηνύματα λάθους/επιτυχίας -->
         <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
         <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
 
         <form th:action="@{/participation/new}" method="post">
-            <!-- Επιλογή εθελοντή -->
-            <div class="mb-3">
+            <!-- Επιλογή εθελοντή για ΜΗ-εθελοντές (π.χ. admin) -->
+            <div class="mb-3" sec:authorize="!hasRole('ROLE_VOLUNTEER')">
                 <label class="form-label">Volunteer</label>
                 <select class="form-control" name="volunteerId" required>
                     <option value="">Select Volunteer</option>
@@ -26,28 +26,24 @@
                 </select>
             </div>
 
-            <!-- Περίπτωση 1: Ήρθαμε από Apply σε συγκεκριμένο event -> κλειδωμένο πεδίο -->
-            <div class="mb-3" th:if="${selectedEvent != null}">
+            <!-- Για εθελοντή: εμφανίζουμε το όνομά του και κρυφό πεδίο -->
+            <div class="mb-3" sec:authorize="hasRole('ROLE_VOLUNTEER')">
+                <label class="form-label">Volunteer</label>
+                <input type="text" class="form-control"
+                       th:value="${currentVolunteer != null ? currentVolunteer.firstName + ' ' + currentVolunteer.lastName : ''}"
+                       disabled>
+                <input type="hidden" name="volunteerId" th:value="${currentVolunteer != null ? currentVolunteer.id : ''}">
+            </div>
+
+            <!-- Εμφάνιση επιλεγμένου event (κλειδωμένο) -->
+            <div class="mb-3">
                 <label class="form-label">Event</label>
                 <input type="text" class="form-control" th:value="${selectedEvent.title}" disabled>
-                <!-- Κρυφό πεδίο για να σταλεί το eventId -->
                 <input type="hidden" name="eventId" th:value="${selectedEvent.id}">
             </div>
 
-            <!-- Περίπτωση 2: Δεν ήρθαμε από Apply -> δείχνουμε dropdown με διαθέσιμα events -->
-            <div class="mb-3" th:unless="${selectedEvent != null}">
-                <label class="form-label">Event</label>
-                <select class="form-control" name="eventId" required>
-                    <option value="">Select Event</option>
-                    <option th:each="e : ${events}"
-                            th:value="${e.id}"
-                            th:text="${e.title + ' | ' + (e.dateTime != null ? #temporals.format(e.dateTime, 'dd/MM/yyyy') : 'N/A') + ' | ' + (e.organization != null ? e.organization.name : 'N/A')}"
-                            th:selected="${e.id == selectedEventId}"></option>
-                </select>
-            </div>
-
             <button type="submit" class="btn btn-primary">Submit Application</button>
-            <a th:href="@{/participation/list}" class="btn btn-secondary">Cancel</a>
+            <a th:href="@{/event/list}" class="btn btn-secondary">Cancel</a>
         </form>
     </div>
 </div>

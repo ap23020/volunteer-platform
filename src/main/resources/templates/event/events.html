@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
-      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" xmlns:sec="http://www.w3.org/1999/xhtml"
       layout:decorate="~{page_layout/layout}">
 <head>
     <title>Events</title>
@@ -10,7 +10,8 @@
     <div class="container py-5">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2>Events</h2>
-            <a th:href="@{/event/new}" class="btn btn-primary">Create Event</a>
+            <a sec:authorize="hasAnyRole('ROLE_ORGANIZATION','ROLE_ADMIN')"
+               th:href="@{/event/new}" class="btn btn-primary">Create Event</a>
         </div>
 
         <!-- Εμφάνιση μηνυμάτων επιτυχίας/λάθους -->
@@ -50,12 +51,14 @@
                            class="btn btn-warning btn-sm">Edit</a>
 
                         <!-- View Participations -->
-                        <a th:href="@{/participation/event/{id}(id=${event.id})}"
-                           class="btn btn-info btn-sm">View</a>
+                        <a sec:authorize="hasAnyRole('ROLE_ORGANIZATION','ROLE_ADMIN')"
+                           th:href="@{/participation/event/{id}(id=${event.id})}"
+                           class="btn btn-info btn-sm">View </a>
 
-                        <a th:if="${event.status.name() == 'APPROVED'}"
-                           th:href="@{/participation/new(eventId=${event.id})}"
-                           class="btn btn-success btn-sm">Apply</a>
+                        <a sec:authorize="hasRole('ROLE_VOLUNTEER')"
+                            th:if="${event.status.name() == 'APPROVED' && !appliedEventIds.contains(event.id)}"
+                            th:href="@{/participation/new(eventId=${event.id})}"
+                            class="btn btn-success btn-sm">Apply</a>
 
                         <!-- Cancel Event – μόνο για εγκεκριμένες εκδηλώσεις -->
                         <form th:if="${event.status.name() == 'APPROVED'}"

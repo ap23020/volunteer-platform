@@ -101,4 +101,9 @@ public class VolunteerService {
 
         volunteerRepository.delete(volunteer);
     }
+
+    @Transactional
+    public Volunteer getVolunteerByEmail(String email) {
+        return volunteerRepository.findByEmail(email).orElse(null);
+    }
 }
