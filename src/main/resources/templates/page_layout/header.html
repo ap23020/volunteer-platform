@@ -31,6 +31,11 @@
                th:classappend="${activePage == 'adminOrganizations' ? 'active' : ''}"
                th:href="@{/admin/organizations/pending}">Pending Organizations</a>
 
+            <a sec:authorize="hasRole('ROLE_ADMIN')"
+               class="nav-link fw-bold py-1 px-0"
+               th:classappend="${activePage == 'volunteers' ? 'active' : ''}"
+               th:href="@{/volunteer/list}">Volunteers</a>
+
             <!-- Events (VOLUNTEER, ORGANIZATION, ADMIN) -->
             <a sec:authorize="hasAnyRole('ROLE_VOLUNTEER','ROLE_ORGANIZATION','ROLE_ADMIN')"
                class="nav-link fw-bold py-1 px-0"
@@ -60,13 +65,14 @@
                class="nav-link fw-bold py-1 px-0"
                th:href="@{/login}">Login</a>
 
-            <a sec:authorize="!isAuthenticated()"
+            <a sec:authorize="hasRole('ROLE_ADMIN')"
                class="nav-link fw-bold py-1 px-0"
                th:href="@{/register}">Register</a>
 
             <!-- Logout (συνδεδεμένοι) -->
             <form sec:authorize="isAuthenticated()"
-                  th:action="@{/logout}" method="post" class="d-inline ms-2">
+                  th:action="@{/logout}" method="post"
+                  class="d-inline ms-4">
                 <button type="submit"
                         class="btn btn-outline-light btn-sm fw-bold px-3 py-1">
                     Logout

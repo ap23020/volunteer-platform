@@ -41,8 +41,8 @@
         </div>
 
         <!-- Pagination controls – εμφανίζονται μόνο αν υπάρχουν πάνω από μία σελίδες -->
-        <nav th:if="${totalPages > 1}" aria-label="Page navigation" class="mt-4">
-            <ul class="pagination justify-content-center">
+        <nav th:if="${totalPages > 1}" aria-label="Page navigation" class="mt-4 d-flex justify-content-end">
+            <ul class="pagination pagination-sm mb-0">
                 <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
                     <a class="page-link" th:href="@{/notifications/list(page=${currentPage - 1}, size=10)}">Previous</a>
                 </li>

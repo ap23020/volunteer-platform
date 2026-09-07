@@ -63,3 +63,27 @@ body {
 .table-bordered {
     border: none !important;
 }
+
+/* Μικρότερο, διακριτικό pagination */
+.pagination-sm .page-link {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    background-color: transparent;
+    color: rgba(255, 255, 255, 0.8);
+    border: none;
+}
+
+.pagination-sm .page-link:hover {
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.pagination-sm .page-item.active .page-link {
+    background-color: #ffffff;
+    color: #000000;
+    border-radius: 4px;
+}
+
+.pagination-sm .page-item.disabled .page-link {
+    color: rgba(255, 255, 255, 0.4);
+}
