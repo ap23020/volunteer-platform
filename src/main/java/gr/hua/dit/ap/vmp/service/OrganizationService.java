@@ -22,7 +22,7 @@ public class OrganizationService {
     private final ParticipationRepository participationRepository;
     private final ReviewRepository reviewRepository;
     private final NotificationRepository notificationRepository;
-    private final BCryptPasswordEncoder passwordEncoder;   // <-- προσθήκη
+    private final BCryptPasswordEncoder passwordEncoder;
 
     public OrganizationService(OrganizationUserRepository organizationUserRepository,
                                OrganizationRepository organizationRepository,
@@ -32,7 +32,7 @@ public class OrganizationService {
                                ParticipationRepository participationRepository,
                                ReviewRepository reviewRepository,
                                NotificationRepository notificationRepository,
-                               BCryptPasswordEncoder passwordEncoder) {   // <-- προσθήκη
+                               BCryptPasswordEncoder passwordEncoder) {
         this.organizationUserRepository = organizationUserRepository;
         this.organizationRepository = organizationRepository;
         this.notificationService = notificationService;
@@ -150,6 +150,7 @@ public class OrganizationService {
             user.setPassword(passwordEncoder.encode(user.getPassword()));
         }
 
+        // Φόρτωση πλήρους οργανισμού αν υπάρχει
         if (user.getOrganization() != null && user.getOrganization().getId() != null) {
             Organization org = getOrganization(user.getOrganization().getId());
             if (org == null) {
@@ -163,16 +164,24 @@ public class OrganizationService {
             throw new IllegalArgumentException("Please select an organization.");
         }
 
+        // Έλεγχος μοναδικότητας email σε όλη την πλατφόρμα
         if (userRepository.findByEmail(user.getEmail()).isPresent()) {
             throw new IllegalArgumentException("A user with this email already exists.");
         }
 
         organizationUserRepository.save(user);
 
+        // Δημιουργία μηνύματος ειδοποίησης χωρίς email
+        String fullName = (user.getFirstName() != null && user.getLastName() != null)
+                ? user.getFirstName() + " " + user.getLastName()
+                : user.getEmail();
+
+        String orgName = (user.getOrganization() != null) ? user.getOrganization().getName() : "Unknown organization";
+
         notifyAdmins(
                 NotificationType.NEW_REGISTRATION,
                 "New Organization User Registration",
-                "A new organization user registered with email: " + user.getEmail(),
+                "New user " + fullName + " registered for organization \"" + orgName + "\".",
                 user,
                 null
         );

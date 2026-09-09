@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       layout:decorate="~{page_layout/layout}">
 <head>
     <title>Notifications</title>
@@ -10,12 +11,10 @@
     <div class="container py-5">
         <h2 class="mb-4">Notifications</h2>
 
-        <!-- Πίνακας ειδοποιήσεων -->
+        <!-- Πίνακας χωρίς στήλες ID και Type -->
         <table class="table table-striped table-bordered">
             <thead>
             <tr>
-                <th>ID</th>
-                <th>Type</th>
                 <th>Title</th>
                 <th>Message</th>
                 <th>Created At</th>
@@ -23,10 +22,7 @@
             </tr>
             </thead>
             <tbody>
-            <!-- Χρησιμοποιούμε notificationPage.content αντί για notifications -->
             <tr th:each="n : ${notificationPage.content}">
-                <td th:text="${n.id}"></td>
-                <td th:text="${n.type}"></td>
                 <td th:text="${n.title}"></td>
                 <td th:text="${n.message}"></td>
                 <td th:text="${n.createdAt != null ? #temporals.format(n.createdAt, 'dd/MM/yyyy HH:mm') : '-'}"></td>
@@ -40,7 +36,7 @@
             <p>No notifications yet.</p>
         </div>
 
-        <!-- Pagination controls – εμφανίζονται μόνο αν υπάρχουν πάνω από μία σελίδες -->
+        <!-- Pagination controls (εμφανίζονται μόνο αν υπάρχουν πολλές σελίδες) -->
         <nav th:if="${totalPages > 1}" aria-label="Page navigation" class="mt-4 d-flex justify-content-end">
             <ul class="pagination pagination-sm mb-0">
                 <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">

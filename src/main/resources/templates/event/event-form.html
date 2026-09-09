@@ -17,7 +17,6 @@
         <form th:action="${event.id == null} ? @{/event/new} : @{/event/edit/{id}(id=${event.id})}"
               th:object="${event}" method="post">
 
-            <!-- Hidden field για id όταν κάνουμε edit -->
             <input type="hidden" th:field="*{id}" th:if="${event.id != null}">
 
             <div class="mb-3">
@@ -52,17 +51,26 @@
                     <input type="text" class="form-control" th:field="*{category}">
                 </div>
             </div>
-            <div class="mb-3">
+
+            <!-- Οργανισμός για admin (dropdown) -->
+            <div class="mb-3" th:unless="${selectedOrganization != null}">
                 <label class="form-label">Organization</label>
-                <select class="form-control" th:field="*{organization.id}" required>
+                <select class="form-control" name="organizationId" required>
                     <option value="">Select Organization</option>
                     <option th:each="org : ${organizations}"
                             th:value="${org.id}"
                             th:text="${org.name}"></option>
                 </select>
             </div>
-            <button type="submit" class="btn btn-primary"
-                    th:text="${event.id == null ? 'Create Event' : 'Update Event'}">Create Event</button>
+
+            <!-- Οργανισμός κλειδωμένος για οργανισμούς -->
+            <div class="mb-3" th:if="${selectedOrganization != null}">
+                <label class="form-label">Organization</label>
+                <input type="text" class="form-control" th:value="${selectedOrganization.name}" disabled>
+                <input type="hidden" name="organizationId" th:value="${selectedOrganization.id}">
+            </div>
+
+            <button type="submit" class="btn btn-outline-light btn-sm">Submit</button>
             <a th:href="@{/event/list}" class="btn btn-secondary">Cancel</a>
         </form>
     </div>

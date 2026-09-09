@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" class="h-100" xmlns:th="http://www.thymeleaf.org"
-      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" xmlns:sec="http://www.w3.org/1999/xhtml">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -20,6 +20,13 @@
     <!-- MAIN CONTENT -->
     <main class="px-3 flex-grow-1" layout:fragment="main-content"></main>
 
+    <!-- Ένδειξη συνδεδεμένου χρήστη/ρόλου, πάνω από το footer -->
+    <div sec:authorize="isAuthenticated()" class="px-3 mb-2 small text-white-50">
+        Logged in as: <strong><span sec:authentication="name"></span></strong>
+        <span sec:authorize="hasRole('ROLE_ADMIN')">(Admin)</span>
+        <span sec:authorize="hasRole('ROLE_VOLUNTEER')">(Volunteer)</span>
+        <span sec:authorize="hasRole('ROLE_ORGANIZATION')">(Organization User)</span>
+    </div>
     <!-- FOOTER -->
     <footer class="mt-auto text-white-50" th:replace="page_layout/footer :: footer"></footer>
 </div>
