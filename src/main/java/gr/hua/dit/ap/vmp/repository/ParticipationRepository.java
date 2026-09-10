@@ -15,4 +15,5 @@ public interface ParticipationRepository extends JpaRepository<Participation, Lo
     List<Participation> findByStatus(ParticipationStatus status);
     List<Participation> findByEventIdAndStatus(Long eventId, ParticipationStatus status);
     List<Participation> findByVolunteerIdAndEventId(Long volunteerId, Long eventId);
+    List<Participation> findByEventOrganizationId(Long organizationId);
 }

@@ -87,3 +87,91 @@ body {
 .pagination-sm .page-item.disabled .page-link {
     color: rgba(255, 255, 255, 0.4);
 }
+
+/* Στυλ για φόρμες φίλτρων – προσαρμοσμένα στο σκούρο θέμα */
+.form-control,
+.form-select {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+}
+
+.form-control:focus,
+.form-select:focus {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.4);
+    color: #ffffff;
+    box-shadow: none;
+}
+
+/* Τα options του dropdown σε σκούρο φόντο (όπου το επιτρέπει ο browser) */
+.form-select option {
+    background-color: #222;
+    color: #fff;
+}
+
+/* Διακριτικά κουμπιά Filter / Clear */
+.btn-filter {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-filter:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+}
+
+.btn-clear {
+    background-color: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.7);
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-clear:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+/* Στυλ για disabled / readonly πεδία – */
+.form-control:disabled,
+.form-control[readonly],
+.form-select:disabled,
+input:disabled,
+input[readonly] {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    opacity: 1 !important;
+}
+
+/* Ίδιο στυλ και για textarea */
+textarea:disabled,
+textarea[readonly] {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    opacity: 1 !important;
+}
+
+/* Τα placeholder να είναι διακριτικά */
+.form-control::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* Όταν κάνουμε focus σε πεδία */
+.form-control:focus,
+.form-select:focus {
+    background-color: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: none;
+}
+
+/* Επιλογές dropdown σε σκούρο φόντο */
+.form-select option {
+    background-color: #222;
+    color: #fff;
+}

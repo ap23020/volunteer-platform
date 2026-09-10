@@ -1,7 +1,16 @@
 package gr.hua.dit.ap.vmp.controllers;
 
-import gr.hua.dit.ap.vmp.entities.*;
-import gr.hua.dit.ap.vmp.service.*;
+import gr.hua.dit.ap.vmp.entities.Event;
+import gr.hua.dit.ap.vmp.entities.EventStatus;
+import gr.hua.dit.ap.vmp.entities.Organization;
+import gr.hua.dit.ap.vmp.entities.OrganizationUser;
+import gr.hua.dit.ap.vmp.entities.User;
+import gr.hua.dit.ap.vmp.entities.Volunteer;
+import gr.hua.dit.ap.vmp.service.EventService;
+import gr.hua.dit.ap.vmp.service.OrganizationService;
+import gr.hua.dit.ap.vmp.service.ParticipationService;
+import gr.hua.dit.ap.vmp.service.UserService;
+import gr.hua.dit.ap.vmp.service.VolunteerService;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -39,14 +48,35 @@ public class EventController {
     // Λίστα events
     @GetMapping("/list")
     public String listEvents(Model model) {
-        List<Event> events = eventService.getEvents();
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+
+        boolean isOrganization = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ORGANIZATION"));
         boolean isVolunteer = auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_VOLUNTEER"));
 
+        List<Event> events;
+
+        if (isOrganization) {
+            // Οργανισμός: μόνο τα δικά του events
+            User user = userService.findByEmail(email);
+            if (user instanceof OrganizationUser) {
+                OrganizationUser orgUser = (OrganizationUser) user;
+                events = eventService.getEventsByOrganization(orgUser.getOrganization().getId());
+            } else {
+                events = List.of();
+            }
+        } else if (isVolunteer) {
+            // Εθελοντής: μόνο εγκεκριμένα events
+            events = eventService.getApprovedEvents();
+        } else {
+            // Admin: όλα
+            events = eventService.getEvents();
+        }
+
         Set<Long> appliedEventIds = new HashSet<>();
         if (isVolunteer) {
-            String email = auth.getName();
             Volunteer currentVolunteer = volunteerService.getVolunteerByEmail(email);
             if (currentVolunteer != null) {
                 for (Event event : events) {
@@ -63,7 +93,7 @@ public class EventController {
         return "event/events";
     }
 
-    // Φόρμα δημιουργίας event
+    // Φόρμα νέου event
     @GetMapping("/new")
     public String showEventForm(Model model) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -78,7 +108,6 @@ public class EventController {
                 model.addAttribute("selectedOrganization", orgUser.getOrganization());
             }
         } else {
-            // Για admin: λίστα εγκεκριμένων οργανισμών
             model.addAttribute("organizations", organizationService.getApprovedOrganizations());
         }
 
@@ -107,7 +136,6 @@ public class EventController {
                 return "redirect:/event/new";
             }
         } else {
-            // Admin: χρησιμοποίησε το organizationId από τη φόρμα
             if (organizationId == null) {
                 redirectAttributes.addFlashAttribute("errorMessage", "Please select an organization.");
                 return "redirect:/event/new";
@@ -131,5 +159,88 @@ public class EventController {
         return "redirect:/event/list";
     }
 
-    // Υπόλοιπες μέθοδοι (edit, cancel, delete) παραμένουν ως έχουν
+    // Φόρμα επεξεργασίας
+    @GetMapping("/edit/{id}")
+    public String showEditForm(@PathVariable Long id, Model model) {
+        Event event = eventService.getEvent(id);
+        if (event == null) {
+            return "redirect:/event/list";
+        }
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        boolean isOrganization = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ORGANIZATION"));
+
+        if (isOrganization) {
+            User user = userService.findByEmail(email);
+            if (user instanceof OrganizationUser) {
+                OrganizationUser orgUser = (OrganizationUser) user;
+                model.addAttribute("selectedOrganization", orgUser.getOrganization());
+            }
+        } else {
+            model.addAttribute("organizations", organizationService.getApprovedOrganizations());
+        }
+
+        model.addAttribute("event", event);
+        model.addAttribute("activePage", "events");
+        return "event/event-form";
+    }
+
+    // Ενημέρωση event
+    @PostMapping("/edit/{id}")
+    public String updateEvent(@PathVariable Long id,
+                              @ModelAttribute("event") Event event,
+                              @RequestParam(value = "organizationId", required = false) Long organizationId,
+                              RedirectAttributes redirectAttributes) {
+
+        if (event.getDateTime() != null && event.getDateTime().isBefore(LocalDateTime.now())) {
+            redirectAttributes.addFlashAttribute("errorMessage", "The event date cannot be in the past.");
+            return "redirect:/event/edit/" + id;
+        }
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isOrganization = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ORGANIZATION"));
+
+        // Φόρτωση του οργανισμού από τη βάση (αν δόθηκε)
+        if (organizationId != null && !isOrganization) {
+            Organization org = organizationService.getOrganization(organizationId);
+            if (org == null) {
+                redirectAttributes.addFlashAttribute("errorMessage", "Selected organization not found.");
+                return "redirect:/event/edit/" + id;
+            }
+            event.setOrganization(org);
+        } else {
+            // Για org_user: κρατάμε τον υπάρχοντα οργανισμό του event
+            Event existing = eventService.getEvent(id);
+            if (existing != null) {
+                event.setOrganization(existing.getOrganization());
+            }
+        }
+
+        eventService.updateEvent(id, event);
+        redirectAttributes.addFlashAttribute("successMessage", "Event updated and submitted for approval.");
+        return "redirect:/event/list";
+    }
+
+    // Ακύρωση event
+    @PostMapping("/cancel/{id}")
+    public String cancelEvent(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        try {
+            eventService.cancelEvent(id);
+            redirectAttributes.addFlashAttribute("successMessage", "Event cancelled successfully.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+        return "redirect:/event/list";
+    }
+
+    // Διαγραφή event
+    @PostMapping("/delete/{id}")
+    public String deleteEvent(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        eventService.deleteEvent(id);
+        redirectAttributes.addFlashAttribute("successMessage", "Event deleted successfully.");
+        return "redirect:/event/list";
+    }
 }

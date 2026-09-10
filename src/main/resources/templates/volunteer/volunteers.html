@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
-      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" xmlns:sec="http://www.w3.org/1999/xhtml"
       layout:decorate="~{page_layout/layout}">
 <head>
     <title>Volunteers</title>
@@ -13,7 +13,6 @@
         <table class="table table-striped table-bordered">
             <thead>
             <tr>
-                <th>ID</th>
                 <th>First Name</th>
                 <th>Last Name</th>
                 <th>Email</th>
@@ -24,7 +23,6 @@
             </thead>
             <tbody>
             <tr th:each="volunteer : ${volunteerPage.content}">
-                <td th:text="${volunteer.id}"></td>
                 <td th:text="${volunteer.firstName}"></td>
                 <td th:text="${volunteer.lastName}"></td>
                 <td th:text="${volunteer.email}"></td>

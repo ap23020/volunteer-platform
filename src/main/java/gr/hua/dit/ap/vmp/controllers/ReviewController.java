@@ -1,9 +1,9 @@
 package gr.hua.dit.ap.vmp.controllers;
 
-import gr.hua.dit.ap.vmp.entities.Participation;
-import gr.hua.dit.ap.vmp.entities.Review;
-import gr.hua.dit.ap.vmp.service.ParticipationService;
-import gr.hua.dit.ap.vmp.service.ReviewService;
+import gr.hua.dit.ap.vmp.entities.*;
+import gr.hua.dit.ap.vmp.service.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -17,29 +17,70 @@ public class ReviewController {
 
     private final ReviewService reviewService;
     private final ParticipationService participationService;
+    private final EventService eventService;
+    private final UserService userService;
+    private final VolunteerService volunteerService;
 
     public ReviewController(ReviewService reviewService,
-                            ParticipationService participationService) {
+                            ParticipationService participationService,
+                            EventService eventService,
+                            UserService userService,
+                            VolunteerService volunteerService) {
         this.reviewService = reviewService;
         this.participationService = participationService;
+        this.eventService = eventService;
+        this.userService = userService;
+        this.volunteerService = volunteerService;
     }
 
     // Λίστα όλων των αξιολογήσεων
     @GetMapping("/list")
-    public String listReviews(Model model) {
-        model.addAttribute("reviews", reviewService.getReviews());
+    public String listReviews(@RequestParam(required = false) Long eventId,
+                              @RequestParam(required = false) Integer rating,
+                              Model model) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+
+        boolean isOrganization = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ORGANIZATION"));
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        Long organizationId = null;
+        List<Event> events;
+
+        if (isOrganization) {
+            User user = userService.findByEmail(email);
+            if (user instanceof OrganizationUser) {
+                OrganizationUser orgUser = (OrganizationUser) user;
+                organizationId = orgUser.getOrganization().getId();
+                events = eventService.getEventsByOrganization(organizationId);
+            } else {
+                events = List.of();
+            }
+        } else {
+            events = eventService.getEvents();
+        }
+
+        List<Review> reviews = reviewService.getFilteredReviews(organizationId, eventId, rating);
+
+        model.addAttribute("reviews", reviews);
+        model.addAttribute("events", events);
+        model.addAttribute("ratings", List.of(1, 2, 3, 4, 5));
+        model.addAttribute("selectedEventId", eventId);
+        model.addAttribute("selectedRating", rating);
+        model.addAttribute("isAdmin", isAdmin);
         model.addAttribute("activePage", "reviews");
         return "review/reviews";
     }
 
-    // Εμφάνιση φόρμας αξιολόγησης για συγκεκριμένη συμμετοχή
+    // Φόρμα αξιολόγησης
     @GetMapping("/new")
     public String showReviewForm(@RequestParam Long participationId, Model model) {
         Participation participation = participationService.getParticipation(participationId);
         if (participation == null) {
             return "redirect:/participation/list";
         }
-
         model.addAttribute("participation", participation);
         model.addAttribute("activePage", "reviews");
         return "review/review-form";
@@ -57,7 +98,6 @@ public class ReviewController {
             return "redirect:/review/new?participationId=" + participationId;
         }
 
-        // Βρες τη συμμετοχή για να πάρεις το volunteerId
         Participation participation = participationService.getParticipation(participationId);
         Long volunteerId = participation != null && participation.getVolunteer() != null
                 ? participation.getVolunteer().getId() : null;
@@ -68,5 +108,20 @@ public class ReviewController {
         } else {
             return "redirect:/participation/list";
         }
+    }
+    @GetMapping("/my")
+    public String myReviews(Model model) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+
+        Volunteer volunteer = volunteerService.getVolunteerByEmail(email);
+        if (volunteer == null) {
+            return "redirect:/";
+        }
+
+        List<Review> reviews = reviewService.getReviewsByVolunteer(volunteer.getId());
+        model.addAttribute("reviews", reviews);
+        model.addAttribute("activePage", "reviews");
+        return "review/my-reviews";
     }
 }

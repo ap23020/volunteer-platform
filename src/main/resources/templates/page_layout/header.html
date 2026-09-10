@@ -31,11 +31,6 @@
                th:classappend="${activePage == 'adminOrganizations' ? 'active' : ''}"
                th:href="@{/admin/organizations/pending}">Pending Organizations</a>
 
-            <a sec:authorize="hasRole('ROLE_ADMIN')"
-               class="nav-link fw-bold py-1 px-0"
-               th:classappend="${activePage == 'volunteers' ? 'active' : ''}"
-               th:href="@{/volunteer/list}">Volunteers</a>
-
             <!-- Events (VOLUNTEER, ORGANIZATION, ADMIN) -->
             <a sec:authorize="hasAnyRole('ROLE_VOLUNTEER','ROLE_ORGANIZATION','ROLE_ADMIN')"
                class="nav-link fw-bold py-1 px-0"
@@ -68,6 +63,21 @@
             <a sec:authorize="hasRole('ROLE_ADMIN')"
                class="nav-link fw-bold py-1 px-0"
                th:href="@{/register}">Register</a>
+
+            <a sec:authorize="hasAnyRole('ROLE_ORGANIZATION','ROLE_ADMIN')"
+               class="nav-link fw-bold py-1 px-0"
+               th:classappend="${activePage == 'reviews' ? 'active' : ''}"
+               th:href="@{/review/list}">Reviews</a>
+
+            <a sec:authorize="hasRole('ROLE_VOLUNTEER')"
+               class="nav-link fw-bold py-1 px-0"
+               th:classappend="${activePage == 'myReviews' ? 'active' : ''}"
+               th:href="@{/review/my}">My Reviews</a>
+
+            <a sec:authorize="isAuthenticated()"
+               class="nav-link fw-bold py-1 px-0"
+               th:classappend="${activePage == 'profile' ? 'active' : ''}"
+               th:href="@{/profile}">Profile</a>
 
             <!-- Logout (συνδεδεμένοι) -->
             <form sec:authorize="isAuthenticated()"

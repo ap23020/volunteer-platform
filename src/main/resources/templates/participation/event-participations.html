@@ -18,7 +18,6 @@
         <table class="table table-striped table-bordered">
             <thead>
             <tr>
-                <th>ID</th>
                 <th>Volunteer</th>
                 <th>Status</th>
                 <th>Submitted At</th>
@@ -27,7 +26,6 @@
             </thead>
             <tbody>
             <tr th:each="p : ${participations}">
-                <td th:text="${p.id}"></td>
                 <td th:text="${p.volunteer.firstName + ' ' + p.volunteer.lastName}"></td>
                 <td th:text="${p.status}"></td>
                 <td th:text="${p.createdAt != null ? #temporals.format(p.createdAt, 'dd/MM/yyyy HH:mm') : '-'}"></td>

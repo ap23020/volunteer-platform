@@ -81,5 +81,41 @@ public class ReviewService {
 
         return null; // επιτυχία
     }
+
+    @Transactional
+    public List<Review> getReviewsByOrganization(Long organizationId) {
+        return reviewRepository.findByParticipationEventOrganizationId(organizationId);
+    }
+
+    @Transactional
+    public List<Review> getFilteredReviews(Long organizationId, Long eventId, Integer rating) {
+        if (organizationId != null) {
+            // Οργανισμός: περιορισμός στα δικά του events
+            if (eventId != null && rating != null) {
+                return reviewRepository.findByParticipationEventOrganizationIdAndParticipationEventIdAndRating(organizationId, eventId, rating);
+            } else if (eventId != null) {
+                return reviewRepository.findByParticipationEventOrganizationIdAndParticipationEventId(organizationId, eventId);
+            } else if (rating != null) {
+                return reviewRepository.findByParticipationEventOrganizationIdAndRating(organizationId, rating);
+            } else {
+                return reviewRepository.findByParticipationEventOrganizationId(organizationId);
+            }
+        } else {
+            // Admin: χωρίς περιορισμό
+            if (eventId != null && rating != null) {
+                return reviewRepository.findByParticipationEventIdAndRating(eventId, rating);
+            } else if (eventId != null) {
+                return reviewRepository.findByParticipationEventId(eventId);
+            } else if (rating != null) {
+                return reviewRepository.findByRating(rating);
+            } else {
+                return reviewRepository.findAll();
+            }
+        }
+    }
+    @Transactional
+    public List<Review> getReviewsByVolunteer(Long volunteerId) {
+        return reviewRepository.findByParticipationVolunteerId(volunteerId);
+    }
 }
 

@@ -11,14 +11,18 @@
         <h2 class="mb-4">Submit Review</h2>
 
         <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
-        <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+
+        <div class="mb-3">
+            <label class="form-label">Event</label>
+            <input type="text" class="form-control" th:value="${participation.event.title}" disabled>
+        </div>
 
         <form th:action="@{/review/new}" method="post">
             <input type="hidden" name="participationId" th:value="${participation.id}">
 
             <div class="mb-3">
                 <label class="form-label">Rating</label>
-                <select class="form-control" name="rating" required>
+                <select class="form-select" name="rating" required>
                     <option value="1">1 - Poor</option>
                     <option value="2">2 - Fair</option>
                     <option value="3">3 - Good</option>
@@ -32,7 +36,7 @@
                 <textarea class="form-control" name="comment" rows="4"></textarea>
             </div>
 
-            <button type="submit" class="btn btn-primary">Submit Review</button>
+            <button type="submit" class="btn btn-outline-light btn-sm">Submit</button>
             <a th:href="@{/participation/volunteer/{id}(id=${participation.volunteer.id})}" class="btn btn-secondary">Cancel</a>
         </form>
     </div>

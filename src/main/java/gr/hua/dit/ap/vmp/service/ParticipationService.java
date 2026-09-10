@@ -233,4 +233,9 @@ public class ParticipationService {
                         || p.getStatus() == ParticipationStatus.APPROVED
                         || p.getStatus() == ParticipationStatus.CHECKED_IN);
     }
+
+    @Transactional
+    public List<Participation> getParticipationsByOrganization(Long organizationId) {
+        return participationRepository.findByEventOrganizationId(organizationId);
+    }
 }

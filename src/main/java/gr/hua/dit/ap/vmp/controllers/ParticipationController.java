@@ -1,11 +1,9 @@
 package gr.hua.dit.ap.vmp.controllers;
 
-import gr.hua.dit.ap.vmp.entities.Event;
-import gr.hua.dit.ap.vmp.entities.Participation;
-import gr.hua.dit.ap.vmp.entities.ParticipationStatus;
-import gr.hua.dit.ap.vmp.entities.Volunteer;
+import gr.hua.dit.ap.vmp.entities.*;
 import gr.hua.dit.ap.vmp.service.EventService;
 import gr.hua.dit.ap.vmp.service.ParticipationService;
+import gr.hua.dit.ap.vmp.service.UserService;
 import gr.hua.dit.ap.vmp.service.VolunteerService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -14,6 +12,12 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import gr.hua.dit.ap.vmp.util.CsvExporter;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+
+import java.util.List;
 
 @Controller
 @RequestMapping("/participation")
@@ -22,13 +26,16 @@ public class ParticipationController {
     private final ParticipationService participationService;
     private final VolunteerService volunteerService;
     private final EventService eventService;
+    private final UserService userService;
 
     public ParticipationController(ParticipationService participationService,
                                    VolunteerService volunteerService,
-                                   EventService eventService) {
+                                   EventService eventService,
+                                   UserService userService) {
         this.participationService = participationService;
         this.volunteerService = volunteerService;
         this.eventService = eventService;
+        this.userService = userService;
     }
 
     // Εμφάνιση φόρμας δήλωσης συμμετοχής
@@ -39,18 +46,15 @@ public class ParticipationController {
             return "redirect:/event/list";
         }
 
-        // Λήψη τρέχοντος συνδεδεμένου χρήστη
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
         boolean isVolunteer = auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_VOLUNTEER"));
 
         if (isVolunteer) {
-            // Εθελοντής: φορτώνουμε τον εαυτό του, δεν περνάμε λίστα
             Volunteer currentVolunteer = volunteerService.getVolunteerByEmail(email);
             model.addAttribute("currentVolunteer", currentVolunteer);
         } else {
-            // Για admin ή άλλους ρόλους, παρέχουμε λίστα εθελοντών (π.χ. για testing)
             model.addAttribute("volunteers", volunteerService.getVolunteers());
         }
 
@@ -64,7 +68,6 @@ public class ParticipationController {
     public String submitParticipation(@RequestParam Long eventId,
                                       @RequestParam(required = false) Long volunteerId,
                                       RedirectAttributes redirectAttributes) {
-        // Αν ο χρήστης είναι εθελοντής, χρησιμοποιούμε αυτόματα τον τρέχοντα εθελοντή
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         boolean isVolunteer = auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_VOLUNTEER"));
@@ -92,26 +95,61 @@ public class ParticipationController {
         return "redirect:/participation/list";
     }
 
-    // Λίστα όλων των συμμετοχών (με φίλτρα)
+    // Λίστα συμμετοχών με φίλτρα – διαφοροποιείται ανά ρόλο
     @GetMapping("/list")
     public String listParticipations(@RequestParam(required = false) Long eventId,
                                      @RequestParam(required = false) ParticipationStatus status,
                                      Model model) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+
         boolean isVolunteer = auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_VOLUNTEER"));
+        boolean isOrganization = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ORGANIZATION"));
 
+        // Ο εθελοντής οδηγείται στη δική του σελίδα
         if (isVolunteer) {
-            String email = auth.getName();
             Volunteer currentVolunteer = volunteerService.getVolunteerByEmail(email);
             if (currentVolunteer != null) {
                 return "redirect:/participation/volunteer/" + currentVolunteer.getId();
             }
         }
 
-        // Για οργανισμούς/admin
-        model.addAttribute("participations", participationService.getFilteredParticipations(eventId, status));
-        model.addAttribute("events", eventService.getEvents());
+        List<Participation> participations;
+
+        if (isOrganization) {
+            User user = userService.findByEmail(email);
+            if (user instanceof OrganizationUser) {
+                OrganizationUser orgUser = (OrganizationUser) user;
+                Long orgId = orgUser.getOrganization().getId();
+
+                participations = participationService.getParticipationsByOrganization(orgId);
+
+                if (eventId != null) {
+                    participations = participations.stream()
+                            .filter(p -> p.getEvent().getId().equals(eventId))
+                            .toList();
+                }
+                if (status != null) {
+                    participations = participations.stream()
+                            .filter(p -> p.getStatus() == status)
+                            .toList();
+                }
+
+                // Μόνο τα events του οργανισμού στο dropdown
+                model.addAttribute("events", eventService.getEventsByOrganization(orgId));
+            } else {
+                participations = List.of();
+                model.addAttribute("events", List.of());
+            }
+        } else {
+            // Admin: όλα
+            participations = participationService.getFilteredParticipations(eventId, status);
+            model.addAttribute("events", eventService.getEvents());
+        }
+
+        model.addAttribute("participations", participations);
         model.addAttribute("statuses", ParticipationStatus.values());
         model.addAttribute("selectedEventId", eventId);
         model.addAttribute("selectedStatus", status);
@@ -150,9 +188,33 @@ public class ParticipationController {
 
     // Λίστα συμμετοχών ανά εκδήλωση (για τον οργανισμό)
     @GetMapping("/event/{eventId}")
-    public String listParticipationsByEvent(@PathVariable Long eventId, Model model) {
+    public String listParticipationsByEvent(@PathVariable Long eventId, Model model,
+                                            RedirectAttributes redirectAttributes) {
+        Event event = eventService.getEvent(eventId);
+        if (event == null) {
+            return "redirect:/participation/list";
+        }
+
+        // Έλεγχος ιδιοκτησίας για οργανισμούς
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isOrganization = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ORGANIZATION"));
+
+        if (isOrganization) {
+            User user = userService.findByEmail(auth.getName());
+            if (user instanceof OrganizationUser) {
+                OrganizationUser orgUser = (OrganizationUser) user;
+                if (event.getOrganization() == null
+                        || !event.getOrganization().getId().equals(orgUser.getOrganization().getId())) {
+                    redirectAttributes.addFlashAttribute("errorMessage",
+                            "You can only view participations for your own events.");
+                    return "redirect:/participation/list";
+                }
+            }
+        }
+
         model.addAttribute("participations", participationService.getParticipationsByEvent(eventId));
-        model.addAttribute("event", eventService.getEvent(eventId));
+        model.addAttribute("event", event);
         model.addAttribute("activePage", "participation");
         return "participation/event-participations";
     }
@@ -179,5 +241,47 @@ public class ParticipationController {
         participationService.cancelParticipation(id);
         redirectAttributes.addFlashAttribute("successMessage", "Participation cancelled successfully.");
         return "redirect:/participation/volunteer/" + volunteerId;
+    }
+
+    @GetMapping("/export")
+    public ResponseEntity<byte[]> exportParticipations(@RequestParam(required = false) Long eventId,
+                                                       @RequestParam(required = false) ParticipationStatus status) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        boolean isOrganization = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ORGANIZATION"));
+
+        List<Participation> participations;
+
+        if (isOrganization) {
+            User user = userService.findByEmail(email);
+            if (user instanceof OrganizationUser) {
+                OrganizationUser orgUser = (OrganizationUser) user;
+                participations = participationService.getParticipationsByOrganization(orgUser.getOrganization().getId());
+            } else {
+                participations = List.of();
+            }
+        } else {
+            participations = participationService.getFilteredParticipations(eventId, status);
+        }
+
+        List<String> headers = List.of("ID", "Volunteer", "Event", "Status", "Submitted At");
+        List<List<String>> rows = participations.stream()
+                .map(p -> List.of(
+                        String.valueOf(p.getId()),
+                        p.getVolunteer().getFirstName() + " " + p.getVolunteer().getLastName(),
+                        p.getEvent().getTitle(),
+                        p.getStatus().name(),
+                        p.getCreatedAt() != null ? p.getCreatedAt().toString() : ""
+                ))
+                .toList();
+
+        String csv = CsvExporter.toCsv(headers, rows);
+        byte[] bytes = csv.getBytes();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=participations.csv")
+                .contentType(MediaType.parseMediaType("text/csv"))
+                .body(bytes);
     }
 }

@@ -52,7 +52,14 @@
                 </div>
             </div>
 
-            <!-- Οργανισμός για admin (dropdown) -->
+            <!-- Για οργανισμό: κλειδωμένο πεδίο -->
+            <div class="mb-3" th:if="${selectedOrganization != null}">
+                <label class="form-label">Organization</label>
+                <input type="text" class="form-control" th:value="${selectedOrganization.name}" disabled>
+                <input type="hidden" name="organizationId" th:value="${selectedOrganization.id}">
+            </div>
+
+            <!-- Για admin: dropdown -->
             <div class="mb-3" th:unless="${selectedOrganization != null}">
                 <label class="form-label">Organization</label>
                 <select class="form-control" name="organizationId" required>
@@ -61,13 +68,6 @@
                             th:value="${org.id}"
                             th:text="${org.name}"></option>
                 </select>
-            </div>
-
-            <!-- Οργανισμός κλειδωμένος για οργανισμούς -->
-            <div class="mb-3" th:if="${selectedOrganization != null}">
-                <label class="form-label">Organization</label>
-                <input type="text" class="form-control" th:value="${selectedOrganization.name}" disabled>
-                <input type="hidden" name="organizationId" th:value="${selectedOrganization.id}">
             </div>
 
             <button type="submit" class="btn btn-outline-light btn-sm">Submit</button>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{page_layout/layout}">
+<head>
+    <title>My Profile</title>
+</head>
+<body>
+<div layout:fragment="main-content" class="d-flex flex-column h-100">
+    <div class="container py-5">
+        <h2 class="mb-4">My Profile</h2>
+
+        <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+        <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+
+        <form th:action="@{/profile}" method="post">
+            <div class="mb-3">
+                <label class="form-label">Email</label>
+                <input type="text" class="form-control" th:value="${user.email}" disabled>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">First Name</label>
+                    <input type="text" class="form-control" name="firstName"
+                           th:value="${user.firstName}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Last Name</label>
+                    <input type="text" class="form-control" name="lastName"
+                           th:value="${user.lastName}" required>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Phone</label>
+                <input type="text" class="form-control" name="phone" th:value="${user.phone}">
+            </div>
+
+            <!-- Πεδία μόνο για Volunteer -->
+            <div sec:authorize="hasRole('ROLE_VOLUNTEER')">
+                <div class="mb-3">
+                    <label class="form-label">Skills</label>
+                    <input type="text" class="form-control" name="skills" th:value="${user.skills}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Interests</label>
+                    <input type="text" class="form-control" name="interests" th:value="${user.interests}">
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-outline-light btn-sm">Save Changes</button>
+        </form>
+    </div>
+</div>
+</body>
+</html>

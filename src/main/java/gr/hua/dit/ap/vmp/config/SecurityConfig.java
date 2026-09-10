@@ -48,6 +48,8 @@ public class SecurityConfig {
                         // Άλλα event endpoints για όλους (π.χ. λεπτομέρειες)
                         .requestMatchers("/event/**").hasAnyRole("ORGANIZATION", "ADMIN", "VOLUNTEER")
 
+                        .requestMatchers("/profile", "/profile/**").authenticated()
+
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form

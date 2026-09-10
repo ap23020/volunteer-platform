@@ -6,6 +6,7 @@ import gr.hua.dit.ap.vmp.entities.Role;
 import gr.hua.dit.ap.vmp.entities.UserStatus;
 import gr.hua.dit.ap.vmp.service.OrganizationService;
 import gr.hua.dit.ap.vmp.service.UserService;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +24,7 @@ public class OrganizationController {
         this.organizationService = organizationService;
         this.userService = userService;
     }
+
 
     // ===== Οργανισμός =====
 
@@ -122,6 +124,7 @@ public class OrganizationController {
 
     // Διαγραφή οργανισμού
     @PostMapping("/delete/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public String deleteOrganization(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         organizationService.deleteOrganization(id);
         redirectAttributes.addFlashAttribute("successMessage", "Organization deleted successfully.");
