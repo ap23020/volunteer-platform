@@ -7,6 +7,7 @@ import gr.hua.dit.ap.vmp.repository.ParticipationRepository;
 import gr.hua.dit.ap.vmp.repository.VolunteerRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
+import gr.hua.dit.ap.vmp.entities.ParticipationStatus;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -95,8 +96,13 @@ public class ParticipationService {
             return "You already have an active application for this event.";
         }
 
-        // Έλεγχος διαθέσιμων θέσεων
-        int currentRegistrations = participationRepository.findByEventId(eventId).size();
+        // Έλεγχος διαθέσιμων θέσεων: μετράμε μόνο τις ενεργές συμμετοχές
+        long currentRegistrations = participationRepository.findByEventId(eventId).stream()
+                .filter(p -> p.getStatus() == ParticipationStatus.PENDING_ORG_APPROVAL
+                        || p.getStatus() == ParticipationStatus.APPROVED
+                        || p.getStatus() == ParticipationStatus.CHECKED_IN)
+                .count();
+
         if (event.getMaxParticipants() != null && currentRegistrations >= event.getMaxParticipants()) {
             return "The event is full.";
         }
