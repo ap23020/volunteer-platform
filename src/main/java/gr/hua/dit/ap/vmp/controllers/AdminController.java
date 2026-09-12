@@ -4,6 +4,7 @@ import gr.hua.dit.ap.vmp.entities.Organization;
 import gr.hua.dit.ap.vmp.entities.User;
 import gr.hua.dit.ap.vmp.entities.Event;
 import gr.hua.dit.ap.vmp.service.OrganizationService;
+import gr.hua.dit.ap.vmp.service.ReviewService;
 import gr.hua.dit.ap.vmp.service.UserService;
 import gr.hua.dit.ap.vmp.service.EventService;
 import org.springframework.stereotype.Controller;
@@ -17,14 +18,16 @@ public class AdminController {
 
     private final UserService userService;
     private final EventService eventService;
-    private final OrganizationService organizationService;   // <-- νέο πεδίο
-
+    private final OrganizationService organizationService;
+    private final ReviewService reviewService;
     public AdminController(UserService userService,
                            EventService eventService,
-                           OrganizationService organizationService) {
+                           OrganizationService organizationService,
+                           ReviewService reviewService) {
         this.userService = userService;
         this.eventService = eventService;
         this.organizationService = organizationService;
+        this.reviewService = reviewService;
     }
 
     // ===== Διαχείριση Χρηστών =====
@@ -109,5 +112,26 @@ public class AdminController {
         organizationService.rejectOrganization(id, reason);
         redirectAttributes.addFlashAttribute("successMessage", "Organization rejected.");
         return "redirect:/admin/organizations/pending";
+    }
+
+    @PostMapping("/reviews/hide/{id}")
+    public String hideReview(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        reviewService.hideReview(id);
+        redirectAttributes.addFlashAttribute("successMessage", "Review hidden successfully.");
+        return "redirect:/review/list";
+    }
+
+    @PostMapping("/reviews/unhide/{id}")
+    public String unhideReview(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        reviewService.unhideReview(id);
+        redirectAttributes.addFlashAttribute("successMessage", "Review is now visible.");
+        return "redirect:/review/list";
+    }
+
+    @PostMapping("/reviews/delete/{id}")
+    public String deleteReview(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        reviewService.deleteReview(id);
+        redirectAttributes.addFlashAttribute("successMessage", "Review deleted successfully.");
+        return "redirect:/review/list";
     }
 }

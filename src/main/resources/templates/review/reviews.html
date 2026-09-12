@@ -51,22 +51,43 @@
                 <th>Event</th>
                 <th>Volunteer</th>
                 <th>Submitted At</th>
-                <th>Hidden</th>
+                <th sec:authorize="hasRole('ROLE_ADMIN')">Hidden</th>
+                <th sec:authorize="hasRole('ROLE_ADMIN')">Actions</th>
             </tr>
             </thead>
             <tbody>
             <tr th:each="r : ${reviews}">
                 <td>
-    <span th:each="i : ${#numbers.sequence(1, 5)}"
-          th:text="${i <= r.rating ? '★' : '☆'}"
-          th:classappend="${i <= r.rating ? 'text-warning' : 'text-muted'}"></span>
+        <span th:each="i : ${#numbers.sequence(1, 5)}"
+              th:text="${i <= r.rating ? '★' : '☆'}"
+              th:classappend="${i <= r.rating ? 'text-warning' : 'text-muted'}"></span>
                     <span class="ms-1 text-white-50" th:text="'(' + ${r.rating} + ')'"></span>
                 </td>
                 <td th:text="${r.comment}"></td>
                 <td th:text="${r.participation?.event?.title} ?: '-'"></td>
                 <td th:text="${r.participation?.volunteer?.firstName + ' ' + r.participation?.volunteer?.lastName} ?: '-'"></td>
                 <td th:text="${r.createdAt != null ? #temporals.format(r.createdAt, 'dd/MM/yyyy HH:mm') : '-'}"></td>
-                <td th:text="${r.hidden ? 'Yes' : 'No'}"></td>
+
+                <!-- Hidden: μόνο για admin -->
+                <td sec:authorize="hasRole('ROLE_ADMIN')" th:text="${r.hidden ? 'Yes' : 'No'}"></td>
+
+                <!-- Actions: μόνο για admin -->
+                <td sec:authorize="hasRole('ROLE_ADMIN')">
+                    <div class="d-flex gap-2">
+                        <form th:if="${!r.hidden}"
+                              th:action="@{/admin/reviews/hide/{id}(id=${r.id})}" method="post">
+                            <button type="submit" class="btn btn-warning btn-sm">Hide</button>
+                        </form>
+                        <form th:if="${r.hidden}"
+                              th:action="@{/admin/reviews/unhide/{id}(id=${r.id})}" method="post">
+                            <button type="submit" class="btn btn-info btn-sm">Unhide</button>
+                        </form>
+                        <form th:action="@{/admin/reviews/delete/{id}(id=${r.id})}" method="post"
+                              onsubmit="return confirm('Delete this review?');">
+                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                        </form>
+                    </div>
+                </td>
             </tr>
             </tbody>
         </table>

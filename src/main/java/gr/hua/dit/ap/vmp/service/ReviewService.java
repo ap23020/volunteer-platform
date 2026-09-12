@@ -49,10 +49,12 @@ public class ReviewService {
         if (participation == null) {
             return "Participation not found.";
         }
+
         // Έλεγχος ότι η συμμετοχή είναι CHECKED_IN
         if (participation.getStatus() != ParticipationStatus.CHECKED_IN) {
             return "You can only review after check-in.";
         }
+
         // Έλεγχος ότι δεν υπάρχει ήδη αξιολόγηση
         if (reviewRepository.existsByParticipationId(participationId)) {
             return "This participation has already been reviewed.";
@@ -66,7 +68,8 @@ public class ReviewService {
         if (event != null) {
             Organization org = event.getOrganization();
             if (org != null) {
-                List<OrganizationUser> orgUsers = organizationUserRepository.findByOrganizationIdAndStatus(org.getId(), UserStatus.ACTIVE);
+                List<OrganizationUser> orgUsers = organizationUserRepository
+                        .findByOrganizationIdAndStatus(org.getId(), UserStatus.ACTIVE);
                 for (OrganizationUser orgUser : orgUsers) {
                     notificationService.createNotification(
                             NotificationType.NEW_REVIEW,
@@ -82,40 +85,82 @@ public class ReviewService {
         return null; // επιτυχία
     }
 
+    // Επιστρέφει reviews ενός οργανισμού, χωρίς τα hidden
     @Transactional
     public List<Review> getReviewsByOrganization(Long organizationId) {
-        return reviewRepository.findByParticipationEventOrganizationId(organizationId);
+        return reviewRepository.findByParticipationEventOrganizationId(organizationId)
+                .stream()
+                .filter(r -> !r.isHidden())
+                .toList();
     }
 
+    // Φιλτραρισμένα reviews (ανά οργανισμό, event, rating)
+    // Για org_user: φιλτράρει τις hidden
+    // Για admin: επιστρέφει όλες
     @Transactional
     public List<Review> getFilteredReviews(Long organizationId, Long eventId, Integer rating) {
+        List<Review> result;
+
         if (organizationId != null) {
             // Οργανισμός: περιορισμός στα δικά του events
             if (eventId != null && rating != null) {
-                return reviewRepository.findByParticipationEventOrganizationIdAndParticipationEventIdAndRating(organizationId, eventId, rating);
+                result = reviewRepository.findByParticipationEventOrganizationIdAndParticipationEventIdAndRating(organizationId, eventId, rating);
             } else if (eventId != null) {
-                return reviewRepository.findByParticipationEventOrganizationIdAndParticipationEventId(organizationId, eventId);
+                result = reviewRepository.findByParticipationEventOrganizationIdAndParticipationEventId(organizationId, eventId);
             } else if (rating != null) {
-                return reviewRepository.findByParticipationEventOrganizationIdAndRating(organizationId, rating);
+                result = reviewRepository.findByParticipationEventOrganizationIdAndRating(organizationId, rating);
             } else {
-                return reviewRepository.findByParticipationEventOrganizationId(organizationId);
+                result = reviewRepository.findByParticipationEventOrganizationId(organizationId);
             }
+
+            // Φιλτράρουμε τις hidden αξιολογήσεις για τον οργανισμό
+            result = result.stream().filter(r -> !r.isHidden()).toList();
+
         } else {
             // Admin: χωρίς περιορισμό
             if (eventId != null && rating != null) {
-                return reviewRepository.findByParticipationEventIdAndRating(eventId, rating);
+                result = reviewRepository.findByParticipationEventIdAndRating(eventId, rating);
             } else if (eventId != null) {
-                return reviewRepository.findByParticipationEventId(eventId);
+                result = reviewRepository.findByParticipationEventId(eventId);
             } else if (rating != null) {
-                return reviewRepository.findByRating(rating);
+                result = reviewRepository.findByRating(rating);
             } else {
-                return reviewRepository.findAll();
+                result = reviewRepository.findAll();
             }
         }
+
+        return result;
     }
+
+    // Επιστρέφει τις αξιολογήσεις ενός εθελοντή (όλες, μαζί με hidden)
     @Transactional
     public List<Review> getReviewsByVolunteer(Long volunteerId) {
         return reviewRepository.findByParticipationVolunteerId(volunteerId);
     }
-}
 
+    // Απόκρυψη αξιολόγησης (admin)
+    @Transactional
+    public void hideReview(Long reviewId) {
+        Review review = reviewRepository.findById(reviewId).orElse(null);
+        if (review != null) {
+            review.setHidden(true);
+            reviewRepository.save(review);
+        }
+    }
+
+    // Επαναφορά ορατότητας αξιολόγησης (admin)
+    @Transactional
+    public void unhideReview(Long reviewId) {
+        Review review = reviewRepository.findById(reviewId).orElse(null);
+        if (review != null) {
+            review.setHidden(false);
+            reviewRepository.save(review);
+        }
+    }
+
+    // Διαγραφή αξιολόγησης (admin)
+    @Transactional
+    public void deleteReview(Long reviewId) {
+        reviewRepository.deleteById(reviewId);
+    }
+}

@@ -17,19 +17,24 @@
                 <th>Rating</th>
                 <th>Comment</th>
                 <th>Submitted At</th>
+                <th>Status</th>
             </tr>
             </thead>
             <tbody>
             <tr th:each="r : ${reviews}">
                 <td th:text="${r.participation?.event?.title} ?: '-'"></td>
                 <td>
-    <span th:each="i : ${#numbers.sequence(1, 5)}"
-          th:text="${i <= r.rating ? '★' : '☆'}"
-          th:classappend="${i <= r.rating ? 'text-warning' : 'text-muted'}"></span>
+                    <span th:each="i : ${#numbers.sequence(1, 5)}"
+                          th:text="${i <= r.rating ? '★' : '☆'}"
+                          th:classappend="${i <= r.rating ? 'text-warning' : 'text-muted'}"></span>
                     <span class="ms-1 text-white-50" th:text="'(' + ${r.rating} + ')'"></span>
                 </td>
                 <td th:text="${r.comment}"></td>
                 <td th:text="${r.createdAt != null ? #temporals.format(r.createdAt, 'dd/MM/yyyy HH:mm') : '-'}"></td>
+                <td>
+                    <span th:if="${r.hidden}" class="text-warning small">Hidden by admin</span>
+                    <span th:unless="${r.hidden}" class="text-success small">Visible</span>
+                </td>
             </tr>
             </tbody>
         </table>
