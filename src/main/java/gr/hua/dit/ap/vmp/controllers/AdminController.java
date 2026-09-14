@@ -7,6 +7,8 @@ import gr.hua.dit.ap.vmp.service.OrganizationService;
 import gr.hua.dit.ap.vmp.service.ReviewService;
 import gr.hua.dit.ap.vmp.service.UserService;
 import gr.hua.dit.ap.vmp.service.EventService;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -56,6 +58,28 @@ public class AdminController {
         userService.rejectUser(id, reason);
         redirectAttributes.addFlashAttribute("successMessage", "User rejected.");
         return "redirect:/admin/users/pending";
+    }
+
+    // UC-09.2: Λίστα όλων των χρηστών για τον διαχειριστή
+    @GetMapping("/users")
+    public String listAllUsers(Model model) {
+        model.addAttribute("users", userService.getAllUsers());
+        model.addAttribute("activePage", "adminAllUsers");
+        return "admin/users";
+    }
+
+    // UC-09.2 / FR-03 / BR-10: Φυσική διαγραφή λογαριασμού από τον διαχειριστή
+    @PostMapping("/users/delete/{id}")
+    public String deleteUser(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String currentEmail = auth != null ? auth.getName() : null;
+        String error = userService.deleteUser(id, currentEmail);
+        if (error != null) {
+            redirectAttributes.addFlashAttribute("errorMessage", error);
+        } else {
+            redirectAttributes.addFlashAttribute("successMessage", "User deleted successfully.");
+        }
+        return "redirect:/admin/users";
     }
 
     // ===== Διαχείριση Εκδηλώσεων =====

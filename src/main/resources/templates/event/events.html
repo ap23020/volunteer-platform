@@ -19,8 +19,28 @@
         <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
 
         <form th:action="@{/event/list}" method="get" class="row g-3 mb-4 align-items-end">
+            <!-- UC-05.2: αναζήτηση κειμένου σε τίτλο/περιγραφή/τοποθεσία -->
+            <div class="col-md-4">
+                <label class="form-label text-white-50 small">Search</label>
+                <input type="text" name="keyword" class="form-control form-control-sm"
+                       th:value="${selectedKeyword}"
+                       placeholder="Title, description or location">
+            </div>
+
+            <!-- UC-05.3: φίλτρο κατηγορίας -->
+            <div class="col-md-3">
+                <label class="form-label text-white-50 small">Category</label>
+                <select class="form-select form-select-sm" name="category">
+                    <option value="">All Categories</option>
+                    <option th:each="c : ${categories}"
+                            th:value="${c}"
+                            th:text="${c}"
+                            th:selected="${c == selectedCategory}"></option>
+                </select>
+            </div>
+
             <!-- Φίλτρο οργανισμού: μόνο για admin -->
-            <div class="col-md-4" sec:authorize="hasRole('ROLE_ADMIN')">
+            <div class="col-md-3" sec:authorize="hasRole('ROLE_ADMIN')">
                 <label class="form-label text-white-50 small">Organization</label>
                 <select class="form-select form-select-sm" name="organizationId">
                     <option value="">All Organizations</option>
@@ -31,8 +51,8 @@
                 </select>
             </div>
 
-            <!-- Φίλτρο κατάστασης: για όλους -->
-            <div class="col-md-4" th:classappend="${#authorization.expression('hasRole(''ROLE_ADMIN'')') ? '' : 'col-md-6'}">
+            <!-- Φίλτρο κατάστασης: μόνο για admin & organization (ο εθελοντής βλέπει πάντα APPROVED) -->
+            <div class="col-md-3" sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_ORGANIZATION')">
                 <label class="form-label text-white-50 small">Status</label>
                 <select class="form-select form-select-sm" name="status">
                     <option value="">All Statuses</option>
@@ -43,7 +63,7 @@
                 </select>
             </div>
 
-            <div class="col-md-4 d-flex gap-2">
+            <div class="col-md-2 d-flex gap-2">
                 <button type="submit" class="btn btn-sm btn-filter flex-fill">Filter</button>
                 <a th:href="@{/event/list}" class="btn btn-sm btn-clear flex-fill">Clear</a>
             </div>

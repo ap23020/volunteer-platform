@@ -46,10 +46,13 @@ public class EventController {
     }
 
     // Λίστα events με φίλτρα
-    // FIX: Χρήση των νέων μεθόδων του service ανά ρόλο
+    // FR-11 / UC-05.2 / UC-05.3: υποστηρίζει keyword (τίτλος/περιγραφή/τοποθεσία)
+    // και φίλτρο κατηγορίας εκτός από τα φίλτρα οργανισμού και κατάστασης.
     @GetMapping("/list")
     public String listEvents(@RequestParam(required = false) Long organizationId,
                              @RequestParam(required = false) EventStatus status,
+                             @RequestParam(required = false) String keyword,
+                             @RequestParam(required = false) String category,
                              Model model) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
@@ -69,17 +72,14 @@ public class EventController {
             if (user instanceof OrganizationUser) {
                 OrganizationUser orgUser = (OrganizationUser) user;
                 Long orgId = orgUser.getOrganization().getId();
-                // FIX: Χρήση της νέας μεθόδου
-                events = eventService.getFilteredEventsForOrganization(orgId, status);
+                events = eventService.getFilteredEventsForOrganization(orgId, status, keyword, category);
             } else {
                 events = List.of();
             }
         } else if (isVolunteer) {
-            // FIX: Χρήση της νέας μεθόδου — πάντα APPROVED
-            events = eventService.getFilteredEventsForVolunteer(organizationId);
+            events = eventService.getFilteredEventsForVolunteer(organizationId, keyword, category);
         } else if (isAdmin) {
-            // FIX: Χρήση της νέας μεθόδου
-            events = eventService.getFilteredEventsForAdmin(organizationId, status);
+            events = eventService.getFilteredEventsForAdmin(organizationId, status, keyword, category);
         } else {
             events = List.of();
         }
@@ -102,6 +102,9 @@ public class EventController {
         model.addAttribute("statuses", EventStatus.values());
         model.addAttribute("selectedOrganizationId", organizationId);
         model.addAttribute("selectedStatus", status);
+        model.addAttribute("selectedKeyword", keyword);
+        model.addAttribute("selectedCategory", category);
+        model.addAttribute("categories", eventService.getDistinctCategories());
         if (isAdmin) {
             model.addAttribute("organizations", organizationService.getAllOrganizations());
         }

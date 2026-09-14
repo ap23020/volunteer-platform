@@ -169,14 +169,21 @@ public class ParticipationService {
         }
     }
 
+    // BR-31 / BR-33 / SD4: επιστρέφει μήνυμα σφάλματος αν η συμμετοχή δεν είναι σε
+    // κατάσταση APPROVED (π.χ. ήδη CHECKED_IN, REJECTED ή CANCELLED).
     @Transactional
-    public void checkInVolunteer(Long participationId) {
+    public String checkInVolunteer(Long participationId) {
         Participation participation = participationRepository.findById(participationId).orElse(null);
-        if (participation != null && participation.getStatus() == ParticipationStatus.APPROVED) {
-            participation.setStatus(ParticipationStatus.CHECKED_IN);
-            participation.setCheckInTime(LocalDateTime.now());
-            participationRepository.save(participation);
+        if (participation == null) {
+            return "Participation not found.";
         }
+        if (participation.getStatus() != ParticipationStatus.APPROVED) {
+            return "Check-in is only allowed for approved participations.";
+        }
+        participation.setStatus(ParticipationStatus.CHECKED_IN);
+        participation.setCheckInTime(LocalDateTime.now());
+        participationRepository.save(participation);
+        return null;
     }
 
     @Transactional

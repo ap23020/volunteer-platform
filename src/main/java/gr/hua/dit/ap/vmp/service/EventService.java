@@ -239,15 +239,27 @@ public class EventService {
      */
     @Transactional
     public List<Event> getFilteredEventsForAdmin(Long organizationId, EventStatus status) {
+        return getFilteredEventsForAdmin(organizationId, status, null, null);
+    }
+
+    /**
+     * UC-05.2 / UC-05.3: Επεκτεταμένο φιλτράρισμα για ADMIN με αναζήτηση κειμένου
+     * και κατηγορίας.
+     */
+    @Transactional
+    public List<Event> getFilteredEventsForAdmin(Long organizationId, EventStatus status,
+                                                 String keyword, String category) {
+        List<Event> base;
         if (organizationId != null && status != null) {
-            return eventRepository.findByOrganizationIdAndStatus(organizationId, status);
+            base = eventRepository.findByOrganizationIdAndStatus(organizationId, status);
         } else if (organizationId != null) {
-            return eventRepository.findByOrganizationId(organizationId);
+            base = eventRepository.findByOrganizationId(organizationId);
         } else if (status != null) {
-            return eventRepository.findByStatus(status);
+            base = eventRepository.findByStatus(status);
         } else {
-            return eventRepository.findAll();
+            base = eventRepository.findAll();
         }
+        return applySearchAndCategory(base, keyword, category);
     }
 
     /**
@@ -255,10 +267,19 @@ public class EventService {
      */
     @Transactional
     public List<Event> getFilteredEventsForOrganization(Long organizationId, EventStatus status) {
-        if (status != null) {
-            return eventRepository.findByOrganizationIdAndStatus(organizationId, status);
-        }
-        return eventRepository.findByOrganizationId(organizationId);
+        return getFilteredEventsForOrganization(organizationId, status, null, null);
+    }
+
+    /**
+     * UC-05.2 / UC-05.3: Επεκτεταμένο φιλτράρισμα για ORGANIZATION.
+     */
+    @Transactional
+    public List<Event> getFilteredEventsForOrganization(Long organizationId, EventStatus status,
+                                                       String keyword, String category) {
+        List<Event> base = (status != null)
+                ? eventRepository.findByOrganizationIdAndStatus(organizationId, status)
+                : eventRepository.findByOrganizationId(organizationId);
+        return applySearchAndCategory(base, keyword, category);
     }
 
     /**
@@ -266,10 +287,19 @@ public class EventService {
      */
     @Transactional
     public List<Event> getFilteredEventsForVolunteer(Long organizationId) {
-        if (organizationId != null) {
-            return eventRepository.findByOrganizationIdAndStatus(organizationId, EventStatus.APPROVED);
-        }
-        return eventRepository.findByStatus(EventStatus.APPROVED);
+        return getFilteredEventsForVolunteer(organizationId, null, null);
+    }
+
+    /**
+     * UC-05.1 / UC-05.2 / UC-05.3: Ο εθελοντής βλέπει μόνο APPROVED δράσεις, με προαιρετική
+     * αναζήτηση κειμένου (τίτλος/περιγραφή/τοποθεσία) και φίλτρο κατηγορίας.
+     */
+    @Transactional
+    public List<Event> getFilteredEventsForVolunteer(Long organizationId, String keyword, String category) {
+        List<Event> base = (organizationId != null)
+                ? eventRepository.findByOrganizationIdAndStatus(organizationId, EventStatus.APPROVED)
+                : eventRepository.findByStatus(EventStatus.APPROVED);
+        return applySearchAndCategory(base, keyword, category);
     }
 
     // FIX: Διατηρούμε την παλιά για backward compatibility (αν χρησιμοποιείται αλλού)
@@ -277,6 +307,39 @@ public class EventService {
     @Transactional
     public List<Event> getFilteredEvents(Long organizationId, EventStatus status) {
         return getFilteredEventsForAdmin(organizationId, status);
+    }
+
+    // UC-05.2 / UC-05.3: κοινή εφαρμογή κριτηρίων αναζήτησης και κατηγορίας
+    private List<Event> applySearchAndCategory(List<Event> events, String keyword, String category) {
+        java.util.stream.Stream<Event> stream = events.stream();
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            String needle = keyword.trim().toLowerCase();
+            stream = stream.filter(e -> containsIgnoreCase(e.getTitle(), needle)
+                    || containsIgnoreCase(e.getDescription(), needle)
+                    || containsIgnoreCase(e.getLocation(), needle));
+        }
+        if (category != null && !category.trim().isEmpty()) {
+            String want = category.trim();
+            stream = stream.filter(e -> e.getCategory() != null && e.getCategory().equalsIgnoreCase(want));
+        }
+        return stream.toList();
+    }
+
+    private boolean containsIgnoreCase(String haystack, String lowerNeedle) {
+        return haystack != null && haystack.toLowerCase().contains(lowerNeedle);
+    }
+
+    /**
+     * UC-05.3: διακριτές κατηγορίες που εμφανίζονται στο φίλτρο κατηγορίας.
+     */
+    @Transactional
+    public List<String> getDistinctCategories() {
+        return eventRepository.findAll().stream()
+                .map(Event::getCategory)
+                .filter(c -> c != null && !c.trim().isEmpty())
+                .distinct()
+                .sorted()
+                .toList();
     }
 
     // ============================================================

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{page_layout/layout}">
+<head>
+    <title>All Users</title>
+</head>
+<body>
+<div layout:fragment="main-content" class="d-flex flex-column h-100">
+    <div class="container py-5">
+        <h2 class="mb-4">Manage User Accounts</h2>
+
+        <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+        <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+
+        <table class="table table-striped table-bordered align-middle">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="user : ${users}">
+                <td th:text="${user.id}"></td>
+                <td th:text="${user.email}"></td>
+                <td th:text="${user.role}"></td>
+                <td th:text="${user.status}"></td>
+                <td>
+                    <form th:if="${user.role.name() != 'ADMIN'}"
+                          th:action="@{/admin/users/delete/{id}(id=${user.id})}"
+                          method="post"
+                          onsubmit="return confirm('Delete this account permanently? This cannot be undone.');">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                    <span th:if="${user.role.name() == 'ADMIN'}" class="text-muted small">Protected</span>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>

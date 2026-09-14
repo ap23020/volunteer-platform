@@ -176,33 +176,77 @@ public class ParticipationController {
         return "participation/participations";
     }
 
-    // Έγκριση συμμετοχής (μόνο ORGANIZATION ή ADMIN)
+    // BR-26: Έγκριση συμμετοχής μόνο από χρήστη του οργανισμού που διοργανώνει τη δράση
     @PostMapping("/approve/{id}")
     @PreAuthorize("hasAnyRole('ORGANIZATION', 'ADMIN')")
     public String approveParticipation(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        if (!canOrgManageParticipation(id)) {
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "You can only manage participations for your own organization's events.");
+            return "redirect:/participation/list";
+        }
         participationService.approveParticipation(id);
         redirectAttributes.addFlashAttribute("successMessage", "Participation approved.");
         return "redirect:/participation/list";
     }
 
-    // Απόρριψη συμμετοχής (μόνο ORGANIZATION ή ADMIN)
+    // BR-26: Απόρριψη συμμετοχής μόνο από χρήστη του οργανισμού που διοργανώνει τη δράση
     @PostMapping("/reject/{id}")
     @PreAuthorize("hasAnyRole('ORGANIZATION', 'ADMIN')")
     public String rejectParticipation(@PathVariable Long id,
                                       @RequestParam(required = false) String reason,
                                       RedirectAttributes redirectAttributes) {
+        if (!canOrgManageParticipation(id)) {
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "You can only manage participations for your own organization's events.");
+            return "redirect:/participation/list";
+        }
         participationService.rejectParticipation(id, reason);
         redirectAttributes.addFlashAttribute("successMessage", "Participation rejected.");
         return "redirect:/participation/list";
     }
 
-    // Check-in εθελοντή (μόνο ORGANIZATION ή ADMIN)
+    // BR-30 / BR-33 / SD4: Check-in εθελοντή μόνο από χρήστη του διοργανωτή οργανισμού
+    // και μόνο σε συμμετοχή σε κατάσταση APPROVED, με ρητό μήνυμα σφάλματος διαφορετικά.
     @PostMapping("/checkin/{id}")
     @PreAuthorize("hasAnyRole('ORGANIZATION', 'ADMIN')")
     public String checkInVolunteer(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        participationService.checkInVolunteer(id);
-        redirectAttributes.addFlashAttribute("successMessage", "Check-in successful.");
+        if (!canOrgManageParticipation(id)) {
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "You can only check in volunteers for your own organization's events.");
+            return "redirect:/participation/list";
+        }
+        String error = participationService.checkInVolunteer(id);
+        if (error != null) {
+            redirectAttributes.addFlashAttribute("errorMessage", error);
+        } else {
+            redirectAttributes.addFlashAttribute("successMessage", "Check-in successful.");
+        }
         return "redirect:/participation/list";
+    }
+
+    // Βοηθητικός έλεγχος: ο συνδεδεμένος χρήστης οργανισμού διαχειρίζεται μόνο
+    // τις συμμετοχές των δράσεων του δικού του οργανισμού. Ο admin παρακάμπτει τον έλεγχο.
+    private boolean canOrgManageParticipation(Long participationId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) return false;
+
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (isAdmin) return true;
+
+        Participation p = participationService.getParticipation(participationId);
+        if (p == null || p.getEvent() == null || p.getEvent().getOrganization() == null) {
+            return false;
+        }
+
+        User currentUser = userService.findByEmail(auth.getName());
+        if (currentUser instanceof OrganizationUser) {
+            OrganizationUser orgUser = (OrganizationUser) currentUser;
+            return orgUser.getOrganization() != null
+                    && orgUser.getOrganization().getId().equals(p.getEvent().getOrganization().getId());
+        }
+        return false;
     }
 
     // Λίστα συμμετοχών ανά εκδήλωση (για τον οργανισμό)

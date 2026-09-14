@@ -19,6 +19,12 @@
                th:classappend="${activePage == 'adminUsers' ? 'active' : ''}"
                th:href="@{/admin/users/pending}">Pending Users</a>
 
+            <!-- All Users (ADMIN) — UC-09.2 -->
+            <a sec:authorize="hasRole('ROLE_ADMIN')"
+               class="nav-link fw-bold py-1 px-0"
+               th:classappend="${activePage == 'adminAllUsers' ? 'active' : ''}"
+               th:href="@{/admin/users}">All Users</a>
+
             <!-- Pending Events (ADMIN) -->
             <a sec:authorize="hasRole('ROLE_ADMIN')"
                class="nav-link fw-bold py-1 px-0"
