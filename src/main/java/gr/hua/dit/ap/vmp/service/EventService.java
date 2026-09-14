@@ -100,22 +100,44 @@ public class EventService {
         }
     }
 
+    // FIX: Προσθήκη ελέγχου δικαιώματος + state check
     @Transactional
     public void updateEvent(Long id, Event updatedEvent) {
         Event existing = eventRepository.findById(id).orElse(null);
-        if (existing != null) {
-            existing.setTitle(updatedEvent.getTitle());
-            existing.setDescription(updatedEvent.getDescription());
-            existing.setDateTime(updatedEvent.getDateTime());
-            existing.setDuration(updatedEvent.getDuration());
-            existing.setLocation(updatedEvent.getLocation());
-            existing.setMaxParticipants(updatedEvent.getMaxParticipants());
-            existing.setCategory(updatedEvent.getCategory());
-            existing.setOrganization(updatedEvent.getOrganization());
-            existing.setStatus(EventStatus.PENDING_APPROVAL);
-            existing.setAdminComment(null);
-            eventRepository.save(existing);
+        if (existing == null) {
+            throw new IllegalArgumentException("Event not found.");
         }
+
+        // FIX: Έλεγχος δικαιώματος σε επίπεδο service (defense in depth)
+        if (!canManageEvent(existing)) {
+            throw new AccessDeniedException("You cannot edit this event.");
+        }
+
+        // FIX: Έλεγχος αν επιτρέπεται η επεξεργασία με βάση την κατάσταση
+        if (existing.getStatus() == EventStatus.APPROVED
+                || existing.getStatus() == EventStatus.CANCELLED
+                || existing.getStatus() == EventStatus.COMPLETED) {
+            throw new IllegalStateException("Only rejected or pending events can be edited.");
+        }
+
+        existing.setTitle(updatedEvent.getTitle());
+        existing.setDescription(updatedEvent.getDescription());
+        existing.setDateTime(updatedEvent.getDateTime());
+        existing.setDuration(updatedEvent.getDuration());
+        existing.setLocation(updatedEvent.getLocation());
+        existing.setMaxParticipants(updatedEvent.getMaxParticipants());
+        existing.setCategory(updatedEvent.getCategory());
+
+        // Ο οργανισμός μπορεί να αλλάξει μόνο από admin
+        if (updatedEvent.getOrganization() != null) {
+            existing.setOrganization(updatedEvent.getOrganization());
+        }
+
+        // Επαναφορά σε PENDING_APPROVAL μετά την επεξεργασία
+        existing.setStatus(EventStatus.PENDING_APPROVAL);
+        existing.setAdminComment(null);
+
+        eventRepository.save(existing);
     }
 
     @Transactional
@@ -129,6 +151,7 @@ public class EventService {
             throw new IllegalStateException("Only approved events can be cancelled.");
         }
 
+        // FIX: Χρήση της κοινής βοηθητικής μεθόδου
         if (!canManageEvent(event)) {
             throw new AccessDeniedException("You cannot cancel this event.");
         }
@@ -188,9 +211,7 @@ public class EventService {
 
         List<Participation> participations = participationRepository.findByEventId(id);
         for (Participation p : participations) {
-            if (p.getReview() != null) {
-                // Αν έχεις reviewRepository εδώ, μπορείς να το διαγράψεις
-            }
+            // ΣΗΜΕΙΩΣΗ: Αν έχεις ReviewRepository, μπορείς να διαγράψεις πρώτα το review εδώ
             participationRepository.delete(p);
         }
 
@@ -209,9 +230,15 @@ public class EventService {
         return eventRepository.findByStatus(status);
     }
 
-    // Φιλτράρισμα events με βάση οργανισμό και κατάσταση
+    // ============================================================
+    // FIX: Νέες μέθοδοι φιλτραρίσματος ανά ρόλο
+    // ============================================================
+
+    /**
+     * Φιλτράρισμα για ADMIN — βλέπει τα πάντα.
+     */
     @Transactional
-    public List<Event> getFilteredEvents(Long organizationId, EventStatus status) {
+    public List<Event> getFilteredEventsForAdmin(Long organizationId, EventStatus status) {
         if (organizationId != null && status != null) {
             return eventRepository.findByOrganizationIdAndStatus(organizationId, status);
         } else if (organizationId != null) {
@@ -222,6 +249,37 @@ public class EventService {
             return eventRepository.findAll();
         }
     }
+
+    /**
+     * Φιλτράρισμα για ORGANIZATION — μόνο τα δικά του events.
+     */
+    @Transactional
+    public List<Event> getFilteredEventsForOrganization(Long organizationId, EventStatus status) {
+        if (status != null) {
+            return eventRepository.findByOrganizationIdAndStatus(organizationId, status);
+        }
+        return eventRepository.findByOrganizationId(organizationId);
+    }
+
+    /**
+     * Φιλτράρισμα για VOLUNTEER — μόνο εγκεκριμένα events.
+     */
+    @Transactional
+    public List<Event> getFilteredEventsForVolunteer(Long organizationId) {
+        if (organizationId != null) {
+            return eventRepository.findByOrganizationIdAndStatus(organizationId, EventStatus.APPROVED);
+        }
+        return eventRepository.findByStatus(EventStatus.APPROVED);
+    }
+
+    // FIX: Διατηρούμε την παλιά για backward compatibility (αν χρησιμοποιείται αλλού)
+    @Deprecated
+    @Transactional
+    public List<Event> getFilteredEvents(Long organizationId, EventStatus status) {
+        return getFilteredEventsForAdmin(organizationId, status);
+    }
+
+    // ============================================================
 
     private void notifyOrganizationUsers(Event event, NotificationType type, String title, String message) {
         Organization org = event.getOrganization();
@@ -237,6 +295,7 @@ public class EventService {
         }
     }
 
+    // FIX: Βοηθητική μέθοδος για έλεγχο δικαιωμάτων (χρησιμοποιείται από updateEvent & cancelEvent)
     private boolean canManageEvent(Event event) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null) return false;

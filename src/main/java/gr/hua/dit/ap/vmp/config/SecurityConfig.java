@@ -33,7 +33,26 @@ public class SecurityConfig {
                         .requestMatchers("/organization/**").hasAnyRole("ORGANIZATION", "ADMIN")
 
                         // Συμμετοχές
-                        .requestMatchers("/participation/**").hasAnyRole("VOLUNTEER", "ORGANIZATION", "ADMIN")
+                                // Δημιουργία συμμετοχής — μόνο εθελοντής (και admin για ευελιξία)
+                                .requestMatchers("/participation/new").hasAnyRole("VOLUNTEER", "ADMIN")
+                                // Προσωπικές συμμετοχές εθελοντή
+                                .requestMatchers("/participation/volunteer/**").hasAnyRole("VOLUNTEER", "ADMIN")
+
+                        // Ακύρωση συμμετοχής — μόνο εθελοντής
+                                .requestMatchers("/participation/cancel/**").hasAnyRole("VOLUNTEER", "ADMIN")
+
+                       // Έγκριση / Απόρριψη / Check-in — μόνο οργανισμός (και admin)
+                                .requestMatchers("/participation/approve/**").hasAnyRole("ORGANIZATION", "ADMIN")
+                                .requestMatchers("/participation/reject/**").hasAnyRole("ORGANIZATION", "ADMIN")
+                                .requestMatchers("/participation/checkin/**").hasAnyRole("ORGANIZATION", "ADMIN")
+
+                        // Προβολή συμμετοχών ανά event — οργανισμός + admin
+                                .requestMatchers("/participation/event/**").hasAnyRole("ORGANIZATION", "ADMIN")
+
+                        // Export CSV
+                                .requestMatchers("/participation/export").hasAnyRole("ORGANIZATION", "ADMIN")
+                        // Λίστα (με redirects ανά ρόλο) — όλοι
+                                .requestMatchers("/participation/**").hasAnyRole("VOLUNTEER", "ORGANIZATION", "ADMIN")
 
                         // Αξιολογήσεις
                         .requestMatchers("/review/**").hasAnyRole("VOLUNTEER", "ORGANIZATION", "ADMIN")
@@ -50,7 +69,6 @@ public class SecurityConfig {
 
                         .requestMatchers("/profile", "/profile/**").authenticated()
 
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
 
                         .anyRequest().authenticated()
                 )

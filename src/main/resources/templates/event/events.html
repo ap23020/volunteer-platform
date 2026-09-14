@@ -11,7 +11,7 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2>Events</h2>
             <a sec:authorize="hasAnyRole('ROLE_ORGANIZATION','ROLE_ADMIN')"
-            <a th:href="@{/event/new}" class="btn btn-outline-light btn-sm">Create Event</a>
+               th:href="@{/event/new}" class="btn btn-outline-light btn-sm">Create Event</a>
         </div>
 
         <!-- Εμφάνιση μηνυμάτων επιτυχίας/λάθους -->

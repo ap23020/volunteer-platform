@@ -39,10 +39,19 @@ public class ParticipationController {
     }
 
     // Εμφάνιση φόρμας δήλωσης συμμετοχής
+    // FIX: Μόνο VOLUNTEER ή ADMIN μπορούν να φτάσουν εδώ (βλ. SecurityConfig)
     @GetMapping("/new")
-    public String showParticipationForm(@RequestParam Long eventId, Model model) {
+    public String showParticipationForm(@RequestParam Long eventId, Model model,
+                                        RedirectAttributes redirectAttributes) {
         Event selectedEvent = eventService.getEvent(eventId);
         if (selectedEvent == null) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Event not found.");
+            return "redirect:/event/list";
+        }
+
+        // Έλεγχος ότι η δράση είναι εγκεκριμένη
+        if (selectedEvent.getStatus() != EventStatus.APPROVED) {
+            redirectAttributes.addFlashAttribute("errorMessage", "You can only apply to approved events.");
             return "redirect:/event/list";
         }
 
@@ -53,8 +62,13 @@ public class ParticipationController {
 
         if (isVolunteer) {
             Volunteer currentVolunteer = volunteerService.getVolunteerByEmail(email);
+            if (currentVolunteer == null) {
+                redirectAttributes.addFlashAttribute("errorMessage", "Volunteer profile not found.");
+                return "redirect:/event/list";
+            }
             model.addAttribute("currentVolunteer", currentVolunteer);
         } else {
+            // Admin: δυνατότητα επιλογής εθελοντή
             model.addAttribute("volunteers", volunteerService.getVolunteers());
         }
 
@@ -64,22 +78,27 @@ public class ParticipationController {
     }
 
     // Υποβολή δήλωσης συμμετοχής
+    // FIX: Για VOLUNTEER, το volunteerId προέρχεται ΠΑΝΤΑ από το session (αγνοείται τυχόν input)
     @PostMapping("/new")
     public String submitParticipation(@RequestParam Long eventId,
                                       @RequestParam(required = false) Long volunteerId,
                                       RedirectAttributes redirectAttributes) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
         boolean isVolunteer = auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_VOLUNTEER"));
 
+        // Για εθελοντή: το volunteerId προέρχεται από το session (αγνοούμε τυχόν δικό του)
         if (isVolunteer) {
-            String email = auth.getName();
             Volunteer currentVolunteer = volunteerService.getVolunteerByEmail(email);
-            if (currentVolunteer != null) {
-                volunteerId = currentVolunteer.getId();
+            if (currentVolunteer == null) {
+                redirectAttributes.addFlashAttribute("errorMessage", "Volunteer profile not found.");
+                return "redirect:/event/list";
             }
+            volunteerId = currentVolunteer.getId();
         }
 
+        // Για admin: απαιτείται volunteerId
         if (volunteerId == null) {
             redirectAttributes.addFlashAttribute("errorMessage", "Volunteer not found or not authorized.");
             return "redirect:/participation/new?eventId=" + eventId;
@@ -220,15 +239,34 @@ public class ParticipationController {
     }
 
     // Λίστα συμμετοχών ανά εθελοντή (για τον εθελοντή)
+    // FIX: Έλεγχος ότι ο εθελοντής βλέπει ΜΟΝΟ τις δικές του συμμετοχές
     @GetMapping("/volunteer/{volunteerId}")
-    public String listParticipationsByVolunteer(@PathVariable Long volunteerId, Model model) {
-        model.addAttribute("participations", participationService.getActiveOrValidParticipationsByVolunteer(volunteerId));
+    public String listParticipationsByVolunteer(@PathVariable Long volunteerId, Model model,
+                                                RedirectAttributes redirectAttributes) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        // Έλεγχος ιδιοκτησίας για εθελοντή
+        if (!isAdmin) {
+            Volunteer currentVolunteer = volunteerService.getVolunteerByEmail(email);
+            if (currentVolunteer == null || !currentVolunteer.getId().equals(volunteerId)) {
+                redirectAttributes.addFlashAttribute("errorMessage",
+                        "You can only view your own participations.");
+                return "redirect:/participation/list";
+            }
+        }
+
+        model.addAttribute("participations",
+                participationService.getActiveOrValidParticipationsByVolunteer(volunteerId));
         model.addAttribute("volunteer", volunteerService.getVolunteer(volunteerId));
         model.addAttribute("activePage", "participation");
         return "participation/volunteer-participations";
     }
 
     // Ακύρωση συμμετοχής
+    // FIX: Έλεγχος ότι ο συνδεδεμένος χρήστης είναι ο ιδιοκτήτης (ή admin)
     @PostMapping("/cancel/{id}")
     public String cancelParticipation(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         Participation participation = participationService.getParticipation(id);
@@ -237,13 +275,32 @@ public class ParticipationController {
             return "redirect:/participation/list";
         }
 
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        // Έλεγχος ιδιοκτησίας για εθελοντή
+        if (!isAdmin) {
+            Volunteer currentVolunteer = volunteerService.getVolunteerByEmail(email);
+            if (currentVolunteer == null
+                    || !currentVolunteer.getId().equals(participation.getVolunteer().getId())) {
+                redirectAttributes.addFlashAttribute("errorMessage",
+                        "You cannot cancel someone else's participation.");
+                return "redirect:/participation/list";
+            }
+        }
+
         Long volunteerId = participation.getVolunteer().getId();
         participationService.cancelParticipation(id);
         redirectAttributes.addFlashAttribute("successMessage", "Participation cancelled successfully.");
         return "redirect:/participation/volunteer/" + volunteerId;
     }
 
+    // Εξαγωγή CSV
+    // FIX: Μόνο ORGANIZATION ή ADMIN (ο volunteer δεν έχει πρόσβαση)
     @GetMapping("/export")
+    @PreAuthorize("hasAnyRole('ORGANIZATION', 'ADMIN')")
     public ResponseEntity<byte[]> exportParticipations(@RequestParam(required = false) Long eventId,
                                                        @RequestParam(required = false) ParticipationStatus status) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();

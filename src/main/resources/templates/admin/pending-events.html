@@ -23,10 +23,10 @@
             </thead>
             <tbody>
             <tr th:each="event : ${events}">
-                <td th:text="${event.id}"></td>
-                <td th:text="${event.title}"></td>
-                <td th:text="${event.organization.name}"></td>
-                <td th:text="${event.dateTime != null ? #temporals.format(event.dateTime, 'dd/MM/yyyy HH:mm') : '-'}"></td>
+                <td th:text="${event.id}"></td>       <!-- ID -->
+                <td th:text="${event.title}"></td>    <!-- Title -->
+                <td th:text="${event.organization.name}"></td>  <!-- Organization -->
+                <td th:text="${...dateTime...}"></td> <!-- Date -->
                 <td>
                     <div class="d-flex gap-2">
                         <form th:action="@{/admin/events/approve/{id}(id=${event.id})}" method="post">

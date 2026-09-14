@@ -32,7 +32,7 @@ public class AdminInitializer implements CommandLineRunner {
             admin.setFirstName("System");
             admin.setLastName("Admin");
             userRepository.save(admin);
-            System.out.println("Default admin created: admin@volunteer.gr / admin123");
+            System.out.println("Default admin created: admin@vmp.gr / admin123");
         }
     }
 }

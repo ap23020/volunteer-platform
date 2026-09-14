@@ -45,9 +45,12 @@ public class EventController {
         this.userService = userService;
     }
 
-    // Λίστα events
+    // Λίστα events με φίλτρα
+    // FIX: Χρήση των νέων μεθόδων του service ανά ρόλο
     @GetMapping("/list")
-    public String listEvents(Model model) {
+    public String listEvents(@RequestParam(required = false) Long organizationId,
+                             @RequestParam(required = false) EventStatus status,
+                             Model model) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
 
@@ -55,6 +58,8 @@ public class EventController {
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ORGANIZATION"));
         boolean isVolunteer = auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_VOLUNTEER"));
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
         List<Event> events;
 
@@ -63,16 +68,20 @@ public class EventController {
             User user = userService.findByEmail(email);
             if (user instanceof OrganizationUser) {
                 OrganizationUser orgUser = (OrganizationUser) user;
-                events = eventService.getEventsByOrganization(orgUser.getOrganization().getId());
+                Long orgId = orgUser.getOrganization().getId();
+                // FIX: Χρήση της νέας μεθόδου
+                events = eventService.getFilteredEventsForOrganization(orgId, status);
             } else {
                 events = List.of();
             }
         } else if (isVolunteer) {
-            // Εθελοντής: μόνο εγκεκριμένα events
-            events = eventService.getApprovedEvents();
+            // FIX: Χρήση της νέας μεθόδου — πάντα APPROVED
+            events = eventService.getFilteredEventsForVolunteer(organizationId);
+        } else if (isAdmin) {
+            // FIX: Χρήση της νέας μεθόδου
+            events = eventService.getFilteredEventsForAdmin(organizationId, status);
         } else {
-            // Admin: όλα
-            events = eventService.getEvents();
+            events = List.of();
         }
 
         Set<Long> appliedEventIds = new HashSet<>();
@@ -87,8 +96,15 @@ public class EventController {
             }
         }
 
+        // Attributes που απαιτεί το events.html
         model.addAttribute("events", events);
         model.addAttribute("appliedEventIds", appliedEventIds);
+        model.addAttribute("statuses", EventStatus.values());
+        model.addAttribute("selectedOrganizationId", organizationId);
+        model.addAttribute("selectedStatus", status);
+        if (isAdmin) {
+            model.addAttribute("organizations", organizationService.getAllOrganizations());
+        }
         model.addAttribute("activePage", "events");
         return "event/events";
     }
@@ -148,8 +164,21 @@ public class EventController {
             event.setOrganization(org);
         }
 
-        if (event.getDateTime() != null && event.getDateTime().isBefore(LocalDateTime.now())) {
+        // Validation πεδίων
+        if (event.getTitle() == null || event.getTitle().trim().isEmpty()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Title is required.");
+            return "redirect:/event/new";
+        }
+        if (event.getDateTime() == null || event.getDateTime().isBefore(LocalDateTime.now())) {
             redirectAttributes.addFlashAttribute("errorMessage", "The event date cannot be in the past.");
+            return "redirect:/event/new";
+        }
+        if (event.getMaxParticipants() == null || event.getMaxParticipants() < 1) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Max participants must be at least 1.");
+            return "redirect:/event/new";
+        }
+        if (event.getDuration() != null && event.getDuration() < 1) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Duration must be at least 1 hour.");
             return "redirect:/event/new";
         }
 
@@ -161,14 +190,23 @@ public class EventController {
 
     // Φόρμα επεξεργασίας
     @GetMapping("/edit/{id}")
-    public String showEditForm(@PathVariable Long id, Model model) {
+    public String showEditForm(@PathVariable Long id, Model model,
+                               RedirectAttributes redirectAttributes) {
         Event event = eventService.getEvent(id);
         if (event == null) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Event not found.");
             return "redirect:/event/list";
         }
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
+
+        // Έλεγχος δικαιώματος πρόσβασης στη φόρμα
+        if (!canManageEvent(event, email)) {
+            redirectAttributes.addFlashAttribute("errorMessage", "You cannot edit this event.");
+            return "redirect:/event/list";
+        }
+
         boolean isOrganization = auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ORGANIZATION"));
 
@@ -194,16 +232,38 @@ public class EventController {
                               @RequestParam(value = "organizationId", required = false) Long organizationId,
                               RedirectAttributes redirectAttributes) {
 
-        if (event.getDateTime() != null && event.getDateTime().isBefore(LocalDateTime.now())) {
-            redirectAttributes.addFlashAttribute("errorMessage", "The event date cannot be in the past.");
-            return "redirect:/event/edit/" + id;
+        Event existing = eventService.getEvent(id);
+        if (existing == null) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Event not found.");
+            return "redirect:/event/list";
         }
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
         boolean isOrganization = auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ORGANIZATION"));
 
-        // Φόρτωση του οργανισμού από τη βάση (αν δόθηκε)
+        // Έλεγχος δικαιώματος
+        if (!canManageEvent(existing, email)) {
+            redirectAttributes.addFlashAttribute("errorMessage", "You cannot edit this event.");
+            return "redirect:/event/list";
+        }
+
+        // Validation πεδίων
+        if (event.getTitle() == null || event.getTitle().trim().isEmpty()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Title is required.");
+            return "redirect:/event/edit/" + id;
+        }
+        if (event.getDateTime() == null || event.getDateTime().isBefore(LocalDateTime.now())) {
+            redirectAttributes.addFlashAttribute("errorMessage", "The event date cannot be in the past.");
+            return "redirect:/event/edit/" + id;
+        }
+        if (event.getMaxParticipants() == null || event.getMaxParticipants() < 1) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Max participants must be at least 1.");
+            return "redirect:/event/edit/" + id;
+        }
+
+        // Ορισμός οργανισμού
         if (organizationId != null && !isOrganization) {
             Organization org = organizationService.getOrganization(organizationId);
             if (org == null) {
@@ -213,14 +273,16 @@ public class EventController {
             event.setOrganization(org);
         } else {
             // Για org_user: κρατάμε τον υπάρχοντα οργανισμό του event
-            Event existing = eventService.getEvent(id);
-            if (existing != null) {
-                event.setOrganization(existing.getOrganization());
-            }
+            event.setOrganization(existing.getOrganization());
         }
 
-        eventService.updateEvent(id, event);
-        redirectAttributes.addFlashAttribute("successMessage", "Event updated and submitted for approval.");
+        try {
+            eventService.updateEvent(id, event);
+            redirectAttributes.addFlashAttribute("successMessage", "Event updated and submitted for approval.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/event/edit/" + id;
+        }
         return "redirect:/event/list";
     }
 
@@ -239,8 +301,39 @@ public class EventController {
     // Διαγραφή event
     @PostMapping("/delete/{id}")
     public String deleteEvent(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        Event event = eventService.getEvent(id);
+        if (event == null) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Event not found.");
+            return "redirect:/event/list";
+        }
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        if (!canManageEvent(event, email)) {
+            redirectAttributes.addFlashAttribute("errorMessage", "You cannot delete this event.");
+            return "redirect:/event/list";
+        }
+
         eventService.deleteEvent(id);
         redirectAttributes.addFlashAttribute("successMessage", "Event deleted successfully.");
         return "redirect:/event/list";
+    }
+
+    // Βοηθητική μέθοδος για έλεγχο δικαιωμάτων διαχείρισης event
+    private boolean canManageEvent(Event event, String email) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) return false;
+
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (isAdmin) return true;
+
+        User currentUser = userService.findByEmail(email);
+        if (currentUser instanceof OrganizationUser) {
+            OrganizationUser orgUser = (OrganizationUser) currentUser;
+            return event.getOrganization() != null
+                    && event.getOrganization().getId().equals(orgUser.getOrganization().getId());
+        }
+        return false;
     }
 }

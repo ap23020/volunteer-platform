@@ -55,7 +55,7 @@ public class Event {
     // Σχέση ManyToOne με Organization
     @ManyToOne
     @JoinColumn(name = "organization_id", referencedColumnName = "id")
-    private Organization organization = new Organization();
+    private Organization organization;
 
     // Constructors
     public Event() {}
@@ -72,6 +72,18 @@ public class Event {
         this.category = category;
         this.organization = organization;
         this.status = EventStatus.PENDING_APPROVAL;
+    }
+
+    // FIX: Αυτόματη διαχείριση timestamps κατά τη δημιουργία/ενημέρωση
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 
     // Getters & Setters
